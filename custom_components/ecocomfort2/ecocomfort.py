@@ -93,16 +93,21 @@ class EcocomfortDevice:
         try:
             self.client = BleakClient(self.mac_address)
             await self.client.connect()
-            _LOGGER.debug("Connected, pairing with device %s", self.mac_address)
-            await self.client.pair()
-            # 500ms stabilization after pairing before GATT reads (matches ESPHome behavior)
+            _LOGGER.debug("BLE connected to %s, attempting pair", self.mac_address)
+            try:
+                await self.client.pair()
+                _LOGGER.debug("Paired with %s", self.mac_address)
+            except Exception as pair_exc:
+                # Already bonded or pairing not required — not fatal
+                _LOGGER.debug("pair() skipped for %s: %s", self.mac_address, pair_exc)
+            # 500ms stabilization after connect/pair before GATT reads
             await asyncio.sleep(0.5)
             self.state.connected = True
-            _LOGGER.debug("Successfully connected and paired with device %s", self.mac_address)
+            _LOGGER.debug("Ready to read characteristics from %s", self.mac_address)
             return True
         except Exception as exc:
             self.state.connected = False
-            _LOGGER.error("Failed to connect/pair to %s: %s", self.mac_address, exc)
+            _LOGGER.error("Failed to connect to %s: %s", self.mac_address, exc)
             try:
                 if self.client:
                     await self.client.disconnect()
