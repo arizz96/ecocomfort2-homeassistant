@@ -142,6 +142,13 @@ class EcocomfortDevice:
             await self._sync_clock()
         except Exception as exc:
             self.state.connected = False
+            # Discard the stale client so the next refresh attempts a fresh connect
+            try:
+                if self.client:
+                    await self.client.disconnect()
+            except Exception:
+                pass
+            self.client = None
             _LOGGER.error("Error updating device state for %s: %s", self.mac_address, exc)
 
         return self.state
