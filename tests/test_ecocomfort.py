@@ -208,7 +208,7 @@ class TestParseAdvanced:
 
 class TestAsyncConnect:
     async def test_returns_true_on_success(self):
-        dev = EcocomfortDevice(MAC_ADDRESS)
+        dev = EcocomfortDevice(None, MAC_ADDRESS)
         mock_client = AsyncMock()
         with patch("custom_components.ecocomfort2.ecocomfort.BleakClient", return_value=mock_client):
             result = await dev.async_connect()
@@ -216,7 +216,7 @@ class TestAsyncConnect:
         assert dev.state.connected is True
 
     async def test_returns_false_on_exception(self):
-        dev = EcocomfortDevice(MAC_ADDRESS)
+        dev = EcocomfortDevice(None, MAC_ADDRESS)
         mock_client = AsyncMock()
         mock_client.connect.side_effect = OSError("unreachable")
         with patch("custom_components.ecocomfort2.ecocomfort.BleakClient", return_value=mock_client):
@@ -238,7 +238,7 @@ class TestAsyncDisconnect:
         device.client.disconnect.assert_not_awaited()
 
     async def test_skips_when_no_client(self):
-        dev = EcocomfortDevice(MAC_ADDRESS)
+        dev = EcocomfortDevice(None, MAC_ADDRESS)
         dev.client = None
         await dev.async_disconnect()
 

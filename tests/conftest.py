@@ -72,7 +72,7 @@ def make_advanced_bytes(temp_offset=0.0, hum_offset=0.0):
 @pytest.fixture
 def device():
     """Return a fresh EcocomfortDevice with a mocked BleakClient."""
-    dev = EcocomfortDevice(MAC_ADDRESS)
+    dev = EcocomfortDevice(None, MAC_ADDRESS)
     mock_client = AsyncMock()
     mock_client.is_connected = True
     dev.client = mock_client

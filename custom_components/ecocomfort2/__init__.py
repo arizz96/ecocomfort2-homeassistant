@@ -26,7 +26,7 @@ SCAN_INTERVAL = timedelta(seconds=30)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ecocomfort 2 from a config entry."""
-    device = EcocomfortDevice(entry.data[CONF_MAC])
+    device = EcocomfortDevice(hass, entry.data[CONF_MAC])
 
     async def _async_update():
         state = await device.async_update()

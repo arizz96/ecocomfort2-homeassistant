@@ -7,6 +7,14 @@ from datetime import datetime
 from typing import Optional
 
 from bleak import BleakClient
+from bleak_retry_connector import (
+    BleakClientWithServiceCache,
+    BleakNotFoundError,
+    establish_connection,
+)
+
+from homeassistant.components import bluetooth
+from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,7 +87,8 @@ class EcocomfortDevice:
     CHAR_PROGRAMS = "TODO"   # 168-byte weekly schedule, not yet implemented
     CHAR_STATS = "TODO"      # Usage statistics, read-only, not yet implemented
 
-    def __init__(self, mac_address: str) -> None:
+    def __init__(self, hass: Optional[HomeAssistant], mac_address: str) -> None:
+        self.hass = hass
         self.mac_address = mac_address
         self.client: Optional[BleakClient] = None
         self.state = EcocomfortState()
@@ -91,14 +100,43 @@ class EcocomfortDevice:
     async def async_connect(self) -> bool:
         _LOGGER.debug("Attempting to connect to device %s", self.mac_address)
         try:
-            self.client = BleakClient(self.mac_address)
-            await self.client.connect()
-            # Short stabilization before GATT reads — device needs a moment after connect
-            await asyncio.sleep(0.5)
+            if self.hass is not None:
+                ble_device = bluetooth.async_ble_device_from_address(
+                    self.hass, self.mac_address, connectable=True
+                )
+                if ble_device is None:
+                    _LOGGER.error(
+                        "Device %s not discovered by HA Bluetooth — ensure it is in range "
+                        "and the HA Bluetooth integration is enabled",
+                        self.mac_address,
+                    )
+                    self.state.connected = False
+                    return False
+                _LOGGER.debug("Resolved BLEDevice for %s via HA bluetooth manager", self.mac_address)
+                self.client = await establish_connection(
+                    BleakClientWithServiceCache,
+                    ble_device,
+                    self.mac_address,
+                    disconnected_callback=self._on_disconnect,
+                    max_attempts=3,
+                )
+            else:
+                # Test fallback (no hass available)
+                self.client = BleakClient(self.mac_address)
+                await self.client.connect()
+            await asyncio.sleep(0.3)
             self.state.connected = True
-            _LOGGER.debug("Connected to %s, services: %s", self.mac_address,
-                          [str(s.uuid) for s in self.client.services])
+            _LOGGER.debug(
+                "Connected to %s, services: %s",
+                self.mac_address,
+                [str(s.uuid) for s in self.client.services],
+            )
             return True
+        except BleakNotFoundError as exc:
+            self.state.connected = False
+            _LOGGER.error("Device %s not found by HA Bluetooth: %s", self.mac_address, exc)
+            self.client = None
+            return False
         except Exception as exc:
             self.state.connected = False
             _LOGGER.error("Failed to connect to %s: %s", self.mac_address, exc)
@@ -109,6 +147,10 @@ class EcocomfortDevice:
                 pass
             self.client = None
             return False
+
+    def _on_disconnect(self, client) -> None:
+        _LOGGER.debug("BLE disconnect callback fired for %s", self.mac_address)
+        self.state.connected = False
 
     async def async_disconnect(self) -> None:
         if self.client and self.client.is_connected:
