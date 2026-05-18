@@ -52,8 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.debug("Completed async_forward_entry_setups")
 
-    hass.async_create_task(coordinator.async_request_refresh())
-    _LOGGER.debug("Scheduled initial coordinator refresh")
+    _LOGGER.debug("Setup complete, coordinator will poll every %s", SCAN_INTERVAL)
     return True
 
 
