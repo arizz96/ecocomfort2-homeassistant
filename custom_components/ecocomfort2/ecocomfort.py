@@ -131,19 +131,24 @@ class EcocomfortDevice:
 
         try:
             _LOGGER.debug("Reading C_INFO characteristic for %s", self.mac_address)
-            self._parse_info(await self.client.read_gatt_char(self.CHAR_INFO))
+            self._parse_info(await asyncio.wait_for(
+                self.client.read_gatt_char(self.CHAR_INFO), timeout=10.0))
 
             _LOGGER.debug("Reading C_STATE characteristic for %s", self.mac_address)
-            self._parse_state(await self.client.read_gatt_char(self.CHAR_STATE))
+            self._parse_state(await asyncio.wait_for(
+                self.client.read_gatt_char(self.CHAR_STATE), timeout=10.0))
 
             _LOGGER.debug("Reading C_SETTING_OPER characteristic for %s", self.mac_address)
-            self._parse_operating_mode(await self.client.read_gatt_char(self.CHAR_SETTING_OPER))
+            self._parse_operating_mode(await asyncio.wait_for(
+                self.client.read_gatt_char(self.CHAR_SETTING_OPER), timeout=10.0))
 
             _LOGGER.debug("Reading C_CONFIGURATION characteristic for %s", self.mac_address)
-            self._parse_configuration(await self.client.read_gatt_char(self.CHAR_CONFIGURATION))
+            self._parse_configuration(await asyncio.wait_for(
+                self.client.read_gatt_char(self.CHAR_CONFIGURATION), timeout=10.0))
 
             _LOGGER.debug("Reading C_ADVANCED characteristic for %s", self.mac_address)
-            self._parse_advanced(await self.client.read_gatt_char(self.CHAR_ADVANCED))
+            self._parse_advanced(await asyncio.wait_for(
+                self.client.read_gatt_char(self.CHAR_ADVANCED), timeout=10.0))
 
             self.state.connected = True
             _LOGGER.debug("Successfully updated device state: temp=%.1f°C, humidity=%.1f%%, VOC=%dppm, mode=%d, speed=%d",
