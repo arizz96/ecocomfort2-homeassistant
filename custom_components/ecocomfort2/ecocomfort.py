@@ -1,10 +1,13 @@
 """Ecocomfort 2 BLE device communication."""
+import logging
 import struct
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
 from bleak import BleakClient
+
+_LOGGER = logging.getLogger(__name__)
 
 # Speed code → HA percentage
 SPEED_TO_PCT = {1: 25, 2: 50, 3: 75, 4: 100}
@@ -85,14 +88,16 @@ class EcocomfortDevice:
     # ------------------------------------------------------------------
 
     async def async_connect(self) -> bool:
+        _LOGGER.debug("Attempting to connect to device %s", self.mac_address)
         try:
             self.client = BleakClient(self.mac_address)
             await self.client.connect()
             self.state.connected = True
+            _LOGGER.debug("Successfully connected to device %s", self.mac_address)
             return True
         except Exception as exc:
             self.state.connected = False
-            print(f"Failed to connect to {self.mac_address}: {exc}")
+            _LOGGER.error("Failed to connect to %s: %s", self.mac_address, exc)
             return False
 
     async def async_disconnect(self) -> None:
@@ -106,22 +111,38 @@ class EcocomfortDevice:
 
     async def async_update(self) -> EcocomfortState:
         """Read all characteristics and return updated state."""
+        _LOGGER.debug("Starting device state update for %s", self.mac_address)
         if not self.client or not self.client.is_connected:
+            _LOGGER.debug("Device not connected, attempting reconnect for %s", self.mac_address)
             connected = await self.async_connect()
             if not connected:
+                _LOGGER.error("Could not connect to device %s", self.mac_address)
                 return self.state
 
         try:
+            _LOGGER.debug("Reading C_INFO characteristic for %s", self.mac_address)
             self._parse_info(await self.client.read_gatt_char(self.CHAR_INFO))
+
+            _LOGGER.debug("Reading C_STATE characteristic for %s", self.mac_address)
             self._parse_state(await self.client.read_gatt_char(self.CHAR_STATE))
+
+            _LOGGER.debug("Reading C_SETTING_OPER characteristic for %s", self.mac_address)
             self._parse_operating_mode(await self.client.read_gatt_char(self.CHAR_SETTING_OPER))
+
+            _LOGGER.debug("Reading C_CONFIGURATION characteristic for %s", self.mac_address)
             self._parse_configuration(await self.client.read_gatt_char(self.CHAR_CONFIGURATION))
+
+            _LOGGER.debug("Reading C_ADVANCED characteristic for %s", self.mac_address)
             self._parse_advanced(await self.client.read_gatt_char(self.CHAR_ADVANCED))
+
             self.state.connected = True
+            _LOGGER.debug("Successfully updated device state: temp=%.1f°C, humidity=%.1f%%, VOC=%dppm, mode=%d, speed=%d",
+                         self.state.temperature or 0, self.state.humidity or 0, self.state.voc or 0,
+                         self.state.operating_mode or 0, self.state.speed or 0)
             await self._sync_clock()
         except Exception as exc:
             self.state.connected = False
-            print(f"Error updating device state: {exc}")
+            _LOGGER.error("Error updating device state for %s: %s", self.mac_address, exc)
 
         return self.state
 
@@ -208,9 +229,10 @@ class EcocomfortDevice:
                 now.weekday(),
                 0,  # padding
             )
+            _LOGGER.debug("Syncing device clock to %s", now)
             await self.client.write_gatt_char(self.CHAR_SETTING_CLOCK, clock_data)
         except Exception as exc:
-            print(f"Error syncing clock: {exc}")
+            _LOGGER.warning("Error syncing clock for %s: %s", self.mac_address, exc)
 
     # ------------------------------------------------------------------
     # Write commands
@@ -219,8 +241,10 @@ class EcocomfortDevice:
     async def async_set_operating_mode(self, mode: int, speed: int) -> bool:
         """Write operating mode and speed to C_SETTING_OPER."""
         if not await self._ensure_connected():
+            _LOGGER.warning("Cannot set operating mode: device not connected")
             return False
         try:
+            _LOGGER.debug("Setting operating mode to %d, speed to %d", mode, speed)
             await self.client.write_gatt_char(
                 self.CHAR_SETTING_OPER, bytes([mode, speed])
             )
@@ -228,7 +252,7 @@ class EcocomfortDevice:
             self.state.speed = speed & 0x0F
             return True
         except Exception as exc:
-            print(f"Error setting operating mode: {exc}")
+            _LOGGER.error("Error setting operating mode: %s", exc)
             return False
 
     async def async_set_thresholds(
@@ -236,8 +260,10 @@ class EcocomfortDevice:
     ) -> bool:
         """Write sensor activation thresholds (0-3), preserving other config bytes."""
         if not await self._ensure_connected():
+            _LOGGER.warning("Cannot set thresholds: device not connected")
             return False
         try:
+            _LOGGER.debug("Setting thresholds: humidity=%d, luminosity=%d, voc=%d", humidity, luminosity, voc)
             hum_byte = (humidity & 0x7F) | (0x80 if self.state.humidity_advanced else 0)
             voc_byte = (voc & 0x7F) | (0x80 if self.state.voc_advanced else 0)
             # 0x7F = preserve byte; bytes 6-11 (master MAC) set to 0x00
@@ -249,7 +275,7 @@ class EcocomfortDevice:
             self.state.voc_threshold = voc
             return True
         except Exception as exc:
-            print(f"Error setting thresholds: {exc}")
+            _LOGGER.error("Error setting thresholds: %s", exc)
             return False
 
     async def async_set_humidity_advanced(self, advanced: bool) -> bool:
@@ -277,8 +303,11 @@ class EcocomfortDevice:
     async def async_set_season(self, season: int) -> bool:
         """Write season (SEASON_WINTER=0 / SEASON_SUMMER=1), preserving free-cooling bits."""
         if not await self._ensure_connected():
+            _LOGGER.warning("Cannot set season: device not connected")
             return False
         try:
+            season_name = "SUMMER" if season == SEASON_SUMMER else "WINTER"
+            _LOGGER.debug("Setting season to %s", season_name)
             fc_bits = (self.state.free_cooling or 0) & 0x03
             season_bit = 0x08 if season == SEASON_SUMMER else 0x00
             byte4 = fc_bits | season_bit
@@ -288,14 +317,17 @@ class EcocomfortDevice:
             self.state.season = season
             return True
         except Exception as exc:
-            print(f"Error setting season: {exc}")
+            _LOGGER.error("Error setting season: %s", exc)
             return False
 
     async def async_set_free_cooling(self, level: int) -> bool:
         """Write free-cooling intensity (0=Off … 3=High), preserving season bit."""
         if not await self._ensure_connected():
+            _LOGGER.warning("Cannot set free cooling: device not connected")
             return False
         try:
+            level_names = ["Off", "Low", "Medium", "High"]
+            _LOGGER.debug("Setting free cooling to %s", level_names[level] if level < 4 else "Unknown")
             season_bit = 0x08 if self.state.season == SEASON_SUMMER else 0x00
             byte4 = (level & 0x03) | season_bit
             data = bytes([0x7F, 0x7F, 0x7F, 0x7F, byte4, 0x7F,
@@ -304,14 +336,16 @@ class EcocomfortDevice:
             self.state.free_cooling = level
             return True
         except Exception as exc:
-            print(f"Error setting free cooling: {exc}")
+            _LOGGER.error("Error setting free cooling: %s", exc)
             return False
 
     async def async_set_offsets(self, temp_offset: float, hum_offset: float) -> bool:
         """Write calibration offsets to C_ADVANCED (big-endian int16 × 100)."""
         if not await self._ensure_connected():
+            _LOGGER.warning("Cannot set offsets: device not connected")
             return False
         try:
+            _LOGGER.debug("Setting calibration offsets: temp=%.2f°C, humidity=%.2f%%", temp_offset, hum_offset)
             temp_raw = int(temp_offset * 100)
             hum_raw = int(hum_offset * 100)
             data = struct.pack(">hh", temp_raw, hum_raw)
@@ -320,20 +354,23 @@ class EcocomfortDevice:
             self.state.hum_offset = hum_offset
             return True
         except Exception as exc:
-            print(f"Error setting offsets: {exc}")
+            _LOGGER.error("Error setting offsets: %s", exc)
             return False
 
     async def async_set_configuration(self, config: bytes) -> bool:
         """Write raw 12-byte configuration blob."""
         if len(config) != 12:
+            _LOGGER.error("Configuration must be 12 bytes, got %d", len(config))
             return False
         if not await self._ensure_connected():
+            _LOGGER.warning("Cannot set configuration: device not connected")
             return False
         try:
+            _LOGGER.debug("Writing raw 12-byte configuration")
             await self.client.write_gatt_char(self.CHAR_CONFIGURATION, config)
             return True
         except Exception as exc:
-            print(f"Error setting configuration: {exc}")
+            _LOGGER.error("Error setting configuration: %s", exc)
             return False
 
     # ------------------------------------------------------------------
