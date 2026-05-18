@@ -8,6 +8,7 @@ class SensorDeviceClass:
     TEMPERATURE = "temperature"
     HUMIDITY = "humidity"
     VOLATILE_ORGANIC_COMPOUNDS = "volatile_organic_compounds"
+    VOLATILE_ORGANIC_COMPOUNDS_PARTS = "volatile_organic_compounds_parts"
 
 @dataclass
 class SensorEntityDescription:

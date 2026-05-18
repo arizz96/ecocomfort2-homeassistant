@@ -1,3 +1,6 @@
+class UpdateFailed(Exception):
+    pass
+
 class DataUpdateCoordinator:
     def __init__(self, *args, **kwargs):
         pass

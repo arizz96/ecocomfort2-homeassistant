@@ -3,36 +3,35 @@ import logging
 from dataclasses import dataclass
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
-    SensorDeviceClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_MAC,
+    CONCENTRATION_PARTS_PER_BILLION,
     PERCENTAGE,
     UnitOfTemperature,
-    CONCENTRATION_PARTS_PER_MILLION,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import DOMAIN
-from .ecocomfort import EcocomfortDevice
+from .ecocomfort import EcocomfortDevice, MODE_TO_PRESET, SPEED_TO_PCT
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
 class EcocomfortSensorDescription(SensorEntityDescription):
-    """Ecocomfort sensor description."""
-
     value_fn: callable = None
 
 
 SENSOR_DESCRIPTIONS = [
+    # Environmental (C_STATE)
     EcocomfortSensorDescription(
         key="temperature",
         translation_key="temperature",
@@ -52,9 +51,9 @@ SENSOR_DESCRIPTIONS = [
     EcocomfortSensorDescription(
         key="voc",
         translation_key="voc",
-        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
+        device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement="ppb",
+        native_unit_of_measurement=CONCENTRATION_PARTS_PER_BILLION,
         value_fn=lambda state: state.voc,
     ),
     EcocomfortSensorDescription(
@@ -62,6 +61,27 @@ SENSOR_DESCRIPTIONS = [
         translation_key="direction",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda state: state.direction,
+    ),
+    # Operating state readback (C_SETTING_OPER)
+    EcocomfortSensorDescription(
+        key="actual_mode",
+        translation_key="actual_mode",
+        value_fn=lambda state: MODE_TO_PRESET.get(state.operating_mode, "Off")
+        if state.operating_mode is not None
+        else None,
+    ),
+    EcocomfortSensorDescription(
+        key="actual_speed",
+        translation_key="actual_speed",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda state: SPEED_TO_PCT.get(state.speed),
+    ),
+    # Device information (C_INFO)
+    EcocomfortSensorDescription(
+        key="firmware",
+        translation_key="firmware",
+        value_fn=lambda state: state.firmware,
     ),
 ]
 
@@ -71,50 +91,33 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the sensor entities."""
     data = hass.data[DOMAIN][config_entry.entry_id]
-    device = data["device"]
-    coordinator = data["coordinator"]
-
-    entities = [
-        EcocomfortSensor(
-            coordinator,
-            device,
-            config_entry,
-            description,
-        )
-        for description in SENSOR_DESCRIPTIONS
-    ]
-
-    async_add_entities(entities, update_before_add=True)
+    async_add_entities(
+        [
+            EcocomfortSensor(data["coordinator"], data["device"], config_entry, desc)
+            for desc in SENSOR_DESCRIPTIONS
+        ],
+        update_before_add=True,
+    )
 
 
 class EcocomfortSensor(CoordinatorEntity, SensorEntity):
-    """Ecocomfort sensor entity."""
-
     entity_description: EcocomfortSensorDescription
     _attr_has_entity_name = True
 
-    def __init__(
-        self,
-        coordinator,
-        device: EcocomfortDevice,
-        config_entry: ConfigEntry,
-        description: EcocomfortSensorDescription,
-    ) -> None:
-        """Initialize the sensor."""
+    def __init__(self, coordinator, device: EcocomfortDevice, config_entry, description) -> None:
         super().__init__(coordinator)
         self.entity_description = description
         self.device = device
-        self._attr_unique_id = f"{config_entry.data[CONF_MAC]}_{description.key}"
+        mac = config_entry.data[CONF_MAC]
+        self._attr_unique_id = f"{mac}_{description.key}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, config_entry.data[CONF_MAC])},
-            "name": f"Ecocomfort 2 {config_entry.data[CONF_MAC]}",
+            "identifiers": {(DOMAIN, mac)},
+            "name": f"Ecocomfort 2 {mac}",
             "manufacturer": "Fantini Cosmi",
             "model": "Ecocomfort 2",
         }
 
     @property
     def native_value(self):
-        """Return the sensor value."""
         return self.entity_description.value_fn(self.device.state)

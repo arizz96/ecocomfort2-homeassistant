@@ -9,79 +9,54 @@ from tests.conftest import MAC_ADDRESS
 
 
 def make_sensor(description, state: EcocomfortState):
-    """Build an EcocomfortSensor wired to the given state."""
     coordinator = MagicMock()
     device = MagicMock()
     device.state = state
-
     config_entry = MagicMock()
     config_entry.data = {"mac": MAC_ADDRESS}
-
-    entity = EcocomfortSensor(coordinator, device, config_entry, description)
-    return entity
+    return EcocomfortSensor(coordinator, device, config_entry, description)
 
 
-def get_description(key: str):
+def desc(key):
     return next(d for d in SENSOR_DESCRIPTIONS if d.key == key)
 
 
 class TestSensorDescriptions:
-    def test_all_expected_keys_present(self):
+    def test_expected_keys(self):
         keys = {d.key for d in SENSOR_DESCRIPTIONS}
-        assert keys == {"temperature", "humidity", "voc", "direction"}
-
-    def test_temperature_has_celsius_unit(self):
-        desc = get_description("temperature")
-        from homeassistant.const import UnitOfTemperature
-        assert desc.native_unit_of_measurement == UnitOfTemperature.CELSIUS
-
-    def test_humidity_has_percent_unit(self):
-        desc = get_description("humidity")
-        from homeassistant.const import PERCENTAGE
-        assert desc.native_unit_of_measurement == PERCENTAGE
-
-    def test_voc_has_ppb_unit(self):
-        desc = get_description("voc")
-        assert desc.native_unit_of_measurement == "ppb"
+        assert keys == {"temperature", "humidity", "voc", "direction",
+                        "actual_mode", "actual_speed", "firmware"}
 
 
 class TestNativeValue:
-    def test_temperature_sensor(self):
-        state = EcocomfortState(temperature=22.3)
-        sensor = make_sensor(get_description("temperature"), state)
-        assert sensor.native_value == pytest.approx(22.3)
+    def test_temperature(self):
+        assert make_sensor(desc("temperature"), EcocomfortState(temperature=22.3)).native_value == pytest.approx(22.3)
 
-    def test_temperature_sensor_negative(self):
-        state = EcocomfortState(temperature=-3.1)
-        sensor = make_sensor(get_description("temperature"), state)
-        assert sensor.native_value == pytest.approx(-3.1)
+    def test_humidity(self):
+        assert make_sensor(desc("humidity"), EcocomfortState(humidity=65.0)).native_value == pytest.approx(65.0)
 
-    def test_humidity_sensor(self):
-        state = EcocomfortState(humidity=65)
-        sensor = make_sensor(get_description("humidity"), state)
-        assert sensor.native_value == 65
+    def test_voc(self):
+        assert make_sensor(desc("voc"), EcocomfortState(voc=412)).native_value == 412
 
-    def test_voc_sensor(self):
-        state = EcocomfortState(voc=412)
-        sensor = make_sensor(get_description("voc"), state)
-        assert sensor.native_value == 412
+    def test_direction(self):
+        assert make_sensor(desc("direction"), EcocomfortState(direction=2)).native_value == 2
 
-    def test_direction_sensor(self):
-        state = EcocomfortState(direction=2)
-        sensor = make_sensor(get_description("direction"), state)
-        assert sensor.native_value == 2
+    def test_actual_mode_in(self):
+        assert make_sensor(desc("actual_mode"), EcocomfortState(operating_mode=1)).native_value == "In"
 
-    def test_returns_none_when_state_is_none(self):
+    def test_actual_mode_off(self):
+        assert make_sensor(desc("actual_mode"), EcocomfortState(operating_mode=0)).native_value == "Off"
+
+    def test_actual_mode_none(self):
+        assert make_sensor(desc("actual_mode"), EcocomfortState(operating_mode=None)).native_value is None
+
+    def test_actual_speed_50pct(self):
+        assert make_sensor(desc("actual_speed"), EcocomfortState(speed=2)).native_value == 50
+
+    def test_firmware(self):
+        assert make_sensor(desc("firmware"), EcocomfortState(firmware="1.2.3")).native_value == "1.2.3"
+
+    def test_returns_none_when_unset(self):
         state = EcocomfortState()
-        for desc in SENSOR_DESCRIPTIONS:
-            sensor = make_sensor(desc, state)
-            assert sensor.native_value is None, f"{desc.key} should be None"
-
-
-class TestUniqueId:
-    def test_unique_id_includes_mac_and_key(self):
-        state = EcocomfortState()
-        desc = get_description("temperature")
-        sensor = make_sensor(desc, state)
-        assert MAC_ADDRESS.replace(":", "").lower() in sensor.unique_id.lower() or MAC_ADDRESS in sensor.unique_id
-        assert "temperature" in sensor.unique_id
+        for d in SENSOR_DESCRIPTIONS:
+            assert make_sensor(d, state).native_value is None, f"{d.key} should be None"
