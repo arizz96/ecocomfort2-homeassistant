@@ -1,4 +1,5 @@
 """Ecocomfort 2 BLE device communication."""
+import asyncio
 import logging
 import struct
 from dataclasses import dataclass, field
@@ -92,12 +93,22 @@ class EcocomfortDevice:
         try:
             self.client = BleakClient(self.mac_address)
             await self.client.connect()
+            _LOGGER.debug("Connected, pairing with device %s", self.mac_address)
+            await self.client.pair()
+            # 500ms stabilization after pairing before GATT reads (matches ESPHome behavior)
+            await asyncio.sleep(0.5)
             self.state.connected = True
-            _LOGGER.debug("Successfully connected to device %s", self.mac_address)
+            _LOGGER.debug("Successfully connected and paired with device %s", self.mac_address)
             return True
         except Exception as exc:
             self.state.connected = False
-            _LOGGER.error("Failed to connect to %s: %s", self.mac_address, exc)
+            _LOGGER.error("Failed to connect/pair to %s: %s", self.mac_address, exc)
+            try:
+                if self.client:
+                    await self.client.disconnect()
+            except Exception:
+                pass
+            self.client = None
             return False
 
     async def async_disconnect(self) -> None:
