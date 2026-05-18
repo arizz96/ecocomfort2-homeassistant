@@ -93,17 +93,11 @@ class EcocomfortDevice:
         try:
             self.client = BleakClient(self.mac_address)
             await self.client.connect()
-            _LOGGER.debug("BLE connected to %s, attempting pair", self.mac_address)
-            try:
-                await self.client.pair()
-                _LOGGER.debug("Paired with %s", self.mac_address)
-            except Exception as pair_exc:
-                # Already bonded or pairing not required — not fatal
-                _LOGGER.debug("pair() skipped for %s: %s", self.mac_address, pair_exc)
-            # 500ms stabilization after connect/pair before GATT reads
+            # Short stabilization before GATT reads — device needs a moment after connect
             await asyncio.sleep(0.5)
             self.state.connected = True
-            _LOGGER.debug("Ready to read characteristics from %s", self.mac_address)
+            _LOGGER.debug("Connected to %s, services: %s", self.mac_address,
+                          [str(s.uuid) for s in self.client.services])
             return True
         except Exception as exc:
             self.state.connected = False
