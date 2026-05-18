@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Ecocomfort 2",
+        "description": "Enter the MAC address of your Ecocomfort 2 device, or select from discovered devices",
+        "data": {
+          "mac": "MAC Address",
+          "name": "Name"
+        }
+      },
+      "select_device": {
+        "title": "Select Ecocomfort 2 Device",
+        "description": "Select your Ecocomfort 2 device from the list",
+        "data": {
+          "device": "Device",
+          "name": "Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to device"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "entity": {
+    "climate": {
+      "climate": {
+        "name": "Climate"
+      }
+    },
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "voc": {
+        "name": "VOC"
+      },
+      "direction": {
+        "name": "Direction"
+      }
+    }
+  }
+}

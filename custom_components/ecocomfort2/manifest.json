@@ -1,0 +1,14 @@
+{
+  "manifest_version": 1,
+  "domain": "ecocomfort2",
+  "name": "Ecocomfort 2",
+  "codeowners": [
+    "@arizz96"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/arizz96/ecocomfort2-homeassistant",
+  "requirements": [
+    "bleak==0.21.1"
+  ],
+  "version": "0.1.0"
+}
