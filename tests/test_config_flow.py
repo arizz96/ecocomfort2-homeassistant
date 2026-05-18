@@ -89,81 +89,81 @@ class TestAsyncStepSelectDevice:
         flow.async_set_unique_id.assert_awaited_once_with(MAC_ADDRESS)
 
 
+SERVICE_UUID = "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
+
+
+def make_adv_results(*entries):
+    """Build return value for BleakScanner.discover(return_adv=True).
+
+    Each entry is (address, device_name, service_uuids).
+    Returns dict[address, (BLEDevice, AdvertisementData)].
+    """
+    results = {}
+    for address, name, uuids in entries:
+        device = MagicMock()
+        device.name = name
+        device.address = address
+        adv = MagicMock()
+        adv.service_uuids = uuids
+        results[address] = (device, adv)
+    return results
+
+
 class TestDiscoverDevices:
     async def test_discovers_by_name(self):
         flow = make_flow()
-
-        mock_device = MagicMock()
-        mock_device.name = "Ecocomfort2-ABC"
-        mock_device.address = MAC_ADDRESS
-        mock_device.metadata = {}
-
-        mock_scanner = AsyncMock()
-        mock_scanner.discover = AsyncMock(return_value=[mock_device])
-
-        with patch("custom_components.ecocomfort2.config_flow.BleakScanner", return_value=mock_scanner):
+        adv_data = make_adv_results((MAC_ADDRESS, "Ecocomfort2-ABC", []))
+        with patch("custom_components.ecocomfort2.config_flow.BleakScanner") as mock_cls:
+            mock_cls.discover = AsyncMock(return_value=adv_data)
             result = await flow._discover_devices()
-
         assert MAC_ADDRESS in result
 
     async def test_discovers_by_service_uuid(self):
         flow = make_flow()
-        service_uuid = "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
-
-        mock_device = MagicMock()
-        mock_device.name = "Unknown"
-        mock_device.address = MAC_ADDRESS
-        mock_device.metadata = {"uuids": [service_uuid]}
-
-        mock_scanner = AsyncMock()
-        mock_scanner.discover = AsyncMock(return_value=[mock_device])
-
-        with patch("custom_components.ecocomfort2.config_flow.BleakScanner", return_value=mock_scanner):
+        adv_data = make_adv_results((MAC_ADDRESS, "Unknown", [SERVICE_UUID]))
+        with patch("custom_components.ecocomfort2.config_flow.BleakScanner") as mock_cls:
+            mock_cls.discover = AsyncMock(return_value=adv_data)
             result = await flow._discover_devices()
-
         assert MAC_ADDRESS in result
 
     async def test_ignores_unrelated_device(self):
         flow = make_flow()
-
-        mock_device = MagicMock()
-        mock_device.name = "SomeOtherDevice"
-        mock_device.address = "11:22:33:44:55:66"
-        mock_device.metadata = {}
-
-        mock_scanner = AsyncMock()
-        mock_scanner.discover = AsyncMock(return_value=[mock_device])
-
-        with patch("custom_components.ecocomfort2.config_flow.BleakScanner", return_value=mock_scanner):
+        adv_data = make_adv_results(("11:22:33:44:55:66", "SomeOtherDevice", []))
+        with patch("custom_components.ecocomfort2.config_flow.BleakScanner") as mock_cls:
+            mock_cls.discover = AsyncMock(return_value=adv_data)
             result = await flow._discover_devices()
-
         assert result == []
 
     async def test_returns_empty_list_on_exception(self):
         flow = make_flow()
-
-        mock_scanner = AsyncMock()
-        mock_scanner.discover.side_effect = OSError("bluetooth unavailable")
-
-        with patch("custom_components.ecocomfort2.config_flow.BleakScanner", return_value=mock_scanner):
+        with patch("custom_components.ecocomfort2.config_flow.BleakScanner") as mock_cls:
+            mock_cls.discover = AsyncMock(side_effect=OSError("bluetooth unavailable"))
             result = await flow._discover_devices()
-
         assert result == []
 
     async def test_no_duplicate_entries(self):
-        """Same device matched by both name and UUID should appear once."""
+        """Device matched by both name and UUID should appear exactly once."""
         flow = make_flow()
-        service_uuid = "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
-
-        mock_device = MagicMock()
-        mock_device.name = "Ecocomfort2-X"
-        mock_device.address = MAC_ADDRESS
-        mock_device.metadata = {"uuids": [service_uuid]}
-
-        mock_scanner = AsyncMock()
-        mock_scanner.discover = AsyncMock(return_value=[mock_device])
-
-        with patch("custom_components.ecocomfort2.config_flow.BleakScanner", return_value=mock_scanner):
+        # Device name matches AND its UUID matches — dict keying by address deduplicates
+        adv_data = make_adv_results((MAC_ADDRESS, "Ecocomfort2-X", [SERVICE_UUID]))
+        with patch("custom_components.ecocomfort2.config_flow.BleakScanner") as mock_cls:
+            mock_cls.discover = AsyncMock(return_value=adv_data)
             result = await flow._discover_devices()
-
         assert result.count(MAC_ADDRESS) == 1
+
+    async def test_fallback_to_name_only_on_type_error(self):
+        """TypeError from return_adv triggers fallback to name-only scan."""
+        flow = make_flow()
+
+        def discover_side_effect(**kwargs):
+            if kwargs.get("return_adv"):
+                raise TypeError("return_adv not supported")
+            device = MagicMock()
+            device.name = "Ecocomfort2-Old"
+            device.address = MAC_ADDRESS
+            return [device]
+
+        with patch("custom_components.ecocomfort2.config_flow.BleakScanner") as mock_cls:
+            mock_cls.discover = AsyncMock(side_effect=discover_side_effect)
+            result = await flow._discover_devices()
+        assert MAC_ADDRESS in result

@@ -7,8 +7,6 @@
   ],
   "config_flow": true,
   "documentation": "https://github.com/arizz96/ecocomfort2-homeassistant",
-  "requirements": [
-    "bleak==0.21.1"
-  ],
+  "requirements": [],
   "version": "0.2.0"
 }

@@ -93,21 +93,23 @@ class EcocomfortConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _discover_devices(self) -> list:
         """Discover Ecocomfort 2 devices via BLE."""
+        service_uuid = "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
+        found: dict[str, str] = {}  # address → address (dedup)
         try:
-            scanner = BleakScanner()
-            devices = await scanner.discover()
-
-            ecocomfort_devices = []
-            for device in devices:
-                # Look for Ecocomfort 2 devices by name or service UUID
+            # bleak 2.x: discover() with return_adv=True returns
+            # dict[address, (BLEDevice, AdvertisementData)]
+            results = await BleakScanner.discover(return_adv=True)
+            for address, (device, adv) in results.items():
                 if device.name and "ecocomfort" in device.name.lower():
-                    ecocomfort_devices.append(device.address)
-                elif device.metadata.get("uuids"):
-                    service_uuid = "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
-                    if service_uuid in device.metadata.get("uuids", []):
-                        ecocomfort_devices.append(device.address)
+                    found[address] = address
+                elif service_uuid in adv.service_uuids:
+                    found[address] = address
+        except TypeError:
+            # Fallback for older bleak (<0.22) that lacks return_adv
+            for device in await BleakScanner.discover():
+                if device.name and "ecocomfort" in device.name.lower():
+                    found[device.address] = device.address
+        except Exception as exc:
+            _LOGGER.error("Error discovering devices: %s", exc)
 
-            return ecocomfort_devices
-        except Exception as e:
-            _LOGGER.error("Error discovering devices: %s", e)
-            return []
+        return list(found)
