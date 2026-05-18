@@ -32,7 +32,7 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities(
         [EcocomfortFan(data["coordinator"], data["device"], config_entry)],
-        update_before_add=True,
+        update_before_add=False,
     )
 
 

@@ -97,7 +97,7 @@ async def async_setup_entry(
             EcocomfortSensor(data["coordinator"], data["device"], config_entry, desc)
             for desc in SENSOR_DESCRIPTIONS
         ],
-        update_before_add=True,
+        update_before_add=False,
     )
 
 

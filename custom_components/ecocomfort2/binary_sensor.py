@@ -50,7 +50,7 @@ async def async_setup_entry(
             EcocomfortBinarySensor(data["coordinator"], data["device"], config_entry, desc)
             for desc in BINARY_SENSOR_DESCRIPTIONS
         ],
-        update_before_add=True,
+        update_before_add=False,
     )
 
 

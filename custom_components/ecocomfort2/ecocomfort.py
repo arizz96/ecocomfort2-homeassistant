@@ -119,6 +119,21 @@ class EcocomfortDevice:
     # State update
     # ------------------------------------------------------------------
 
+    async def _timed_read(self, char_uuid: str, timeout: float = 10.0) -> bytes:
+        """Read a GATT characteristic, force-disconnecting if BlueZ hangs."""
+        task = asyncio.ensure_future(self.client.read_gatt_char(char_uuid))
+        done, _ = await asyncio.wait([task], timeout=timeout)
+        if task in done:
+            return task.result()  # raises if the read itself failed
+        # Timeout — force-disconnect to unblock the stuck D-Bus call
+        _LOGGER.warning("Read timeout on %s for %s — forcing disconnect", char_uuid, self.mac_address)
+        try:
+            await self.client.disconnect()
+        except Exception:
+            pass
+        self.client = None
+        raise asyncio.TimeoutError(f"GATT read timeout on {char_uuid}")
+
     async def async_update(self) -> EcocomfortState:
         """Read all characteristics and return updated state."""
         _LOGGER.debug("Starting device state update for %s", self.mac_address)
@@ -131,24 +146,19 @@ class EcocomfortDevice:
 
         try:
             _LOGGER.debug("Reading C_INFO characteristic for %s", self.mac_address)
-            self._parse_info(await asyncio.wait_for(
-                self.client.read_gatt_char(self.CHAR_INFO), timeout=10.0))
+            self._parse_info(await self._timed_read(self.CHAR_INFO))
 
             _LOGGER.debug("Reading C_STATE characteristic for %s", self.mac_address)
-            self._parse_state(await asyncio.wait_for(
-                self.client.read_gatt_char(self.CHAR_STATE), timeout=10.0))
+            self._parse_state(await self._timed_read(self.CHAR_STATE))
 
             _LOGGER.debug("Reading C_SETTING_OPER characteristic for %s", self.mac_address)
-            self._parse_operating_mode(await asyncio.wait_for(
-                self.client.read_gatt_char(self.CHAR_SETTING_OPER), timeout=10.0))
+            self._parse_operating_mode(await self._timed_read(self.CHAR_SETTING_OPER))
 
             _LOGGER.debug("Reading C_CONFIGURATION characteristic for %s", self.mac_address)
-            self._parse_configuration(await asyncio.wait_for(
-                self.client.read_gatt_char(self.CHAR_CONFIGURATION), timeout=10.0))
+            self._parse_configuration(await self._timed_read(self.CHAR_CONFIGURATION))
 
             _LOGGER.debug("Reading C_ADVANCED characteristic for %s", self.mac_address)
-            self._parse_advanced(await asyncio.wait_for(
-                self.client.read_gatt_char(self.CHAR_ADVANCED), timeout=10.0))
+            self._parse_advanced(await self._timed_read(self.CHAR_ADVANCED))
 
             self.state.connected = True
             _LOGGER.debug("Successfully updated device state: temp=%.1f°C, humidity=%.1f%%, VOC=%dppm, mode=%d, speed=%d",
