@@ -83,6 +83,22 @@ SENSOR_DESCRIPTIONS = [
         translation_key="firmware",
         value_fn=lambda state: state.firmware,
     ),
+    # Calibration offsets (read-only display, use number entities to change)
+    EcocomfortSensorDescription(
+        key="temp_offset",
+        translation_key="temp_offset",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda state: state.temp_offset,
+    ),
+    EcocomfortSensorDescription(
+        key="hum_offset",
+        translation_key="hum_offset",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda state: state.hum_offset,
+    ),
 ]
 
 
@@ -91,7 +107,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    data = hass.data[DOMAIN][config_entry.entry_id]
+    data = config_entry.runtime_data
     async_add_entities(
         [
             EcocomfortSensor(data["coordinator"], data["device"], config_entry, desc)

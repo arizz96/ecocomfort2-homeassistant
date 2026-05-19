@@ -25,7 +25,8 @@ class TestSensorDescriptions:
     def test_expected_keys(self):
         keys = {d.key for d in SENSOR_DESCRIPTIONS}
         assert keys == {"temperature", "humidity", "voc", "direction",
-                        "actual_mode", "actual_speed", "firmware"}
+                        "actual_mode", "actual_speed", "firmware",
+                        "temp_offset", "hum_offset"}
 
 
 class TestNativeValue:

@@ -62,8 +62,8 @@ THRESHOLD_DESCRIPTIONS = [
 
 OFFSET_DESCRIPTIONS = [
     EcocomfortNumberDescription(
-        key="temp_offset",
-        translation_key="temp_offset",
+        key="set_temp_offset",
+        translation_key="set_temp_offset",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         native_min_value=-5.0,
         native_max_value=5.0,
@@ -73,8 +73,8 @@ OFFSET_DESCRIPTIONS = [
         set_fn=lambda device, v: device.async_set_offsets(v, device.state.hum_offset or 0.0),
     ),
     EcocomfortNumberDescription(
-        key="hum_offset",
-        translation_key="hum_offset",
+        key="set_hum_offset",
+        translation_key="set_hum_offset",
         native_unit_of_measurement=PERCENTAGE,
         native_min_value=-5.0,
         native_max_value=5.0,
@@ -93,7 +93,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    data = hass.data[DOMAIN][config_entry.entry_id]
+    data = config_entry.runtime_data
     async_add_entities(
         [
             EcocomfortNumber(data["coordinator"], data["device"], config_entry, desc)

@@ -64,27 +64,27 @@ class TestThresholdNumbers:
 
 class TestOffsetNumbers:
     def test_temp_offset_value(self):
-        assert make_number(desc("temp_offset"), temp_offset=1.5).native_value == pytest.approx(1.5)
+        assert make_number(desc("set_temp_offset"), temp_offset=1.5).native_value == pytest.approx(1.5)
 
     def test_hum_offset_value(self):
-        assert make_number(desc("hum_offset"), hum_offset=-2.0).native_value == pytest.approx(-2.0)
+        assert make_number(desc("set_hum_offset"), hum_offset=-2.0).native_value == pytest.approx(-2.0)
 
     async def test_set_temp_offset(self):
-        n = make_number(desc("temp_offset"), hum_offset=-1.0)
+        n = make_number(desc("set_temp_offset"), hum_offset=-1.0)
         await n.async_set_native_value(0.5)
         args = n.device.async_set_offsets.call_args[0]
         assert args[0] == pytest.approx(0.5)
         assert args[1] == pytest.approx(-1.0)  # hum preserved
 
     async def test_set_hum_offset(self):
-        n = make_number(desc("hum_offset"), temp_offset=0.5)
+        n = make_number(desc("set_hum_offset"), temp_offset=0.5)
         await n.async_set_native_value(-2.0)
         args = n.device.async_set_offsets.call_args[0]
         assert args[0] == pytest.approx(0.5)  # temp preserved
         assert args[1] == pytest.approx(-2.0)
 
     async def test_no_refresh_on_failure(self):
-        n = make_number(desc("temp_offset"))
+        n = make_number(desc("set_temp_offset"))
         n.device.async_set_offsets = AsyncMock(return_value=False)
         await n.async_set_native_value(1.0)
         n.coordinator.async_request_refresh.assert_not_awaited()

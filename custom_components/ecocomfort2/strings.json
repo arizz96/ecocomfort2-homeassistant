@@ -48,7 +48,9 @@
       "direction": { "name": "Direction" },
       "actual_mode": { "name": "Actual Mode" },
       "actual_speed": { "name": "Actual Speed" },
-      "firmware": { "name": "Firmware" }
+      "firmware": { "name": "Firmware" },
+      "temp_offset": { "name": "Temperature Offset (Read-Only)" },
+      "hum_offset": { "name": "Humidity Offset (Read-Only)" }
     },
     "binary_sensor": {
       "connected": { "name": "Connected" },
@@ -62,8 +64,8 @@
       "humidity_threshold": { "name": "Humidity Sensitivity" },
       "luminosity_threshold": { "name": "Luminosity Sensitivity" },
       "voc_threshold": { "name": "VOC Sensitivity" },
-      "temp_offset": { "name": "Temperature Offset" },
-      "hum_offset": { "name": "Humidity Offset" }
+      "set_temp_offset": { "name": "Set Temperature Offset" },
+      "set_hum_offset": { "name": "Set Humidity Offset" }
     },
     "select": {
       "season": {
