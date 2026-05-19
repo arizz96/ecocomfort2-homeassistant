@@ -4,14 +4,11 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components.bluetooth import (
-    ActiveBluetoothDataUpdateCoordinator,
-    async_ble_device_from_address,
-)
+from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.const import CONF_MAC, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import CONF_RETRY_COUNT, DEFAULT_RETRY_COUNT, DOMAIN
 from .ecocomfort import EcocomfortDevice
@@ -61,14 +58,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Error fetching data from %s: %s", mac, exc)
             raise UpdateFailed(f"Error communicating with {mac}") from exc
 
-    coordinator = ActiveBluetoothDataUpdateCoordinator(
+    coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
-        address=mac,
         name=f"Ecocomfort 2 {mac}",
         update_method=_async_update,
         update_interval=SCAN_INTERVAL,
-        ble_device_callback=lambda *_: None,  # Device-level disconnect handled by Bleak
     )
 
     entry.runtime_data = {"device": device, "coordinator": coordinator}
@@ -76,7 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Waiting for coordinator readiness (timeout: %s)", STARTUP_TIMEOUT)
     try:
         async with asyncio.timeout(STARTUP_TIMEOUT.total_seconds()):
-            await coordinator.async_request_refresh()
+            await coordinator.async_config_entry_first_refresh()
     except asyncio.TimeoutError:
         _LOGGER.error(
             "Coordinator startup timeout for %s — device may be unreachable "
@@ -84,9 +79,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             mac,
         )
         raise ConfigEntryNotReady("Device startup timeout") from None
-    except UpdateFailed as exc:
-        _LOGGER.error("First coordinator update failed for %s: %s", mac, exc)
-        raise ConfigEntryNotReady("Device not responding to initial update") from exc
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.debug("Setup complete for %s", mac)

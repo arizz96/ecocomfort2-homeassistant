@@ -7,9 +7,9 @@ from bleak import BleakScanner
 from homeassistant import config_entries
 from homeassistant.const import CONF_MAC, CONF_NAME
 
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN
 
-DOMAIN = "ecocomfort2"
+_LOGGER = logging.getLogger(__name__)
 
 
 class EcocomfortConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
