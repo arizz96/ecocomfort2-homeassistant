@@ -1,0 +1,92 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Ecocomfort 2",
+        "description": "Enter the MAC address of your Ecocomfort 2 device",
+        "data": {
+          "mac": "MAC Address",
+          "name": "Name"
+        }
+      },
+      "select_device": {
+        "title": "Select Ecocomfort 2 Device",
+        "description": "Select your Ecocomfort 2 device from the discovered list",
+        "data": {
+          "device": "Device",
+          "name": "Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to device"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan": {
+        "name": "Ventilation",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "In": "Air In",
+              "Out": "Air Out",
+              "In-Out": "Alternating",
+              "Sensor": "Sensor/Auto"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "temperature": { "name": "Temperature" },
+      "humidity": { "name": "Humidity" },
+      "voc": { "name": "VOC" },
+      "direction": { "name": "Direction" },
+      "actual_mode": { "name": "Actual Mode" },
+      "actual_speed": { "name": "Actual Speed" },
+      "firmware": { "name": "Firmware" },
+      "temp_offset": { "name": "Temperature Offset (Read-Only)" },
+      "hum_offset": { "name": "Humidity Offset (Read-Only)" }
+    },
+    "binary_sensor": {
+      "connected": { "name": "Connected" },
+      "boost_active": { "name": "Boost Active" }
+    },
+    "switch": {
+      "humidity_advanced": { "name": "Humidity Advanced Mode" },
+      "voc_advanced": { "name": "VOC Advanced Mode" }
+    },
+    "number": {
+      "humidity_threshold": { "name": "Humidity Sensitivity" },
+      "luminosity_threshold": { "name": "Luminosity Sensitivity" },
+      "voc_threshold": { "name": "VOC Sensitivity" },
+      "set_temp_offset": { "name": "Set Temperature Offset" },
+      "set_hum_offset": { "name": "Set Humidity Offset" }
+    },
+    "select": {
+      "season": {
+        "name": "Season",
+        "state": {
+          "Winter": "Winter",
+          "Summer": "Summer"
+        }
+      },
+      "free_cooling": {
+        "name": "Free Cooling",
+        "state": {
+          "Off": "Off",
+          "Low": "Low (2°C delta)",
+          "Medium": "Medium (4°C delta)",
+          "High": "High (6°C delta)"
+        }
+      }
+    },
+    "button": {
+      "pair": { "name": "Pair" }
+    }
+  }
+}
