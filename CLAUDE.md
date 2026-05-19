@@ -44,6 +44,39 @@ A direct Bluetooth custom component for Home Assistant that controls Fantini Cos
 - Manual MAC address entry
 - Prevents duplicate device configuration
 
+## Bluetooth Requirements & Setup
+
+### Prerequisites
+- **HA Bluetooth Integration**: Must be enabled (Settings → Devices & Services → Bluetooth)
+- **BLE-capable Bluetooth adapter** on HA host or accessible via Bluetooth Proxy
+- **Device pairing**: Device must be bonded in BlueZ before the integration can read characteristics
+  - On first setup, device must be discoverable and in Bluetooth range
+  - Pair via Home Assistant's Bluetooth UI or via `bluetoothctl` on the host
+
+### Bluetooth Range & Signal Strength
+BLE reads fail silently when signal is weak:
+- **RSSI > -80 dBm**: Reliable operation (optimal)
+- **RSSI -80 to -85 dBm**: Marginal; reads may timeout
+- **RSSI < -85 dBm**: Expect frequent read failures (timeouts after 10s per read)
+
+**Check RSSI**: Settings → Devices & Services → Bluetooth → Device → Information
+
+### Extending Range: Bluetooth Proxies
+If the device is too far from your HA host, use an **ESPHome Bluetooth Proxy** on an ESP32 placed near the Ecocomfort 2:
+
+1. Flash ESP32 with: https://esphome.io/projects/?type=bluetooth-proxies
+2. Place near the Ecocomfort 2 unit
+3. HA will automatically discover and use the proxy for this device
+4. No integration changes needed — `async_ble_device_from_address()` picks the best path
+
+### Troubleshooting Connection Issues
+1. **"Device not found in Bluetooth range"** → Move device closer or set up a Bluetooth Proxy
+2. **Repeated "Read timeout" warnings** → Check RSSI (above), move closer, or use Bluetooth Proxy
+3. **Reads hang then timeout** → Device encryption keys may be stale
+   - Remove device from BlueZ: `bluetoothctl remove <MAC>`
+   - Re-pair in Home Assistant's Bluetooth UI
+   - Restart Home Assistant
+
 ## Protocol
 
 ### BLE Service
@@ -168,5 +201,6 @@ tests/
 
 ## Version History
 
+- **0.2.1** — Production-ready: Adopt Switchbot integration patterns (ActiveBluetoothDataUpdateCoordinator, startup readiness timeout, ConfigEntryNotReady for proper retries, entry.runtime_data)
 - **0.2.0** — Full feature parity with ESPHome component; corrected all protocol parsing; added 6 new platforms
 - **0.1.0** — Initial structure with climate entity (deprecated)
