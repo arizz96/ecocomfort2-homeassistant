@@ -137,6 +137,10 @@ class EcocomfortDevice:
                 self.mac_address,
                 [str(s.uuid) for s in self.client.services],
             )
+            # Warmup: write clock characteristic to "wake" the device for reads.
+            # The Ecocomfort 2 requires an initial write after connection before
+            # it will respond to GATT reads (matches ESPHome's on_connect behavior).
+            await self._warmup()
             return True
         except BleakNotFoundError as exc:
             self.state.connected = False
@@ -162,6 +166,31 @@ class EcocomfortDevice:
         if self.client and self.client.is_connected:
             await self.client.disconnect()
         self.state.connected = False
+
+    async def _warmup(self) -> None:
+        """Write clock to wake device, then small delay before reads.
+
+        Some Ecocomfort 2 firmware revisions ignore GATT reads until at least
+        one write has been performed on the connection. Writing the clock is
+        a safe, idempotent operation that signals device activity.
+        """
+        try:
+            now = datetime.now()
+            clock_data = struct.pack(
+                "BBBBBBBB",
+                now.year % 100, now.month, now.day,
+                now.hour, now.minute, now.second,
+                now.weekday(), 0,
+            )
+            _LOGGER.debug("Warmup write to clock characteristic for %s", self.mac_address)
+            await asyncio.wait_for(
+                self.client.write_gatt_char(self.CHAR_SETTING_CLOCK, clock_data),
+                timeout=5.0,
+            )
+            await asyncio.sleep(0.3)
+            _LOGGER.debug("Warmup complete for %s", self.mac_address)
+        except Exception as exc:
+            _LOGGER.warning("Warmup write failed for %s (continuing): %s", self.mac_address, exc)
 
     # ------------------------------------------------------------------
     # State update
