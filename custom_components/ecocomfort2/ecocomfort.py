@@ -87,9 +87,15 @@ class EcocomfortDevice:
     CHAR_PROGRAMS = "TODO"   # 168-byte weekly schedule, not yet implemented
     CHAR_STATS = "TODO"      # Usage statistics, read-only, not yet implemented
 
-    def __init__(self, hass: Optional[HomeAssistant], mac_address: str) -> None:
+    def __init__(
+        self,
+        hass: Optional[HomeAssistant],
+        mac_address: str,
+        retry_count: int = 3,
+    ) -> None:
         self.hass = hass
         self.mac_address = mac_address
+        self.retry_count = retry_count
         self.client: Optional[BleakClient] = None
         self.state = EcocomfortState()
 

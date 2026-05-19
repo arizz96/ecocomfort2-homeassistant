@@ -10,10 +10,12 @@
     "bluetooth"
   ],
   "documentation": "https://github.com/arizz96/ecocomfort2-homeassistant",
+  "integration_type": "device",
   "iot_class": "local_polling",
   "requirements": [
     "bleak>=0.22.0",
     "bleak-retry-connector>=3.5.0"
   ],
-  "version": "0.2.0"
+  "quality_scale": "silver",
+  "version": "0.2.1"
 }
