@@ -1,0 +1,230 @@
+# ESPHome Configuration Template for ECOCOMFORT 2
+# ⚠️ GPIO PINS ARE PLACEHOLDERS - MUST BE VERIFIED FROM DEVICE PINOUT
+# DO NOT FLASH WITHOUT CONFIRMING CORRECT GPIO ASSIGNMENTS
+
+esphome:
+  name: ecocomfort2
+  friendly_name: "ECOCOMFORT 2 Smart Ventilation"
+  min_version: 2024.1.0
+
+esp32:
+  board: esp32doit-devkit-v1  # Adjust based on actual board variant
+  framework:
+    type: esp-idf
+    version: recommended
+
+# WiFi Configuration
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+  ap:
+    ssid: "ECOCOMFORT2-Fallback"
+    password: !secret fallback_password
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  password: !secret ota_password
+
+logger:
+  level: DEBUG
+
+# I2C Bus for SHTC3 Sensor
+i2c:
+  sda: GPIO21  # ⚠️ VERIFY
+  scl: GPIO22  # ⚠️ VERIFY
+  frequency: 400kHz
+  id: i2c_bus
+
+# UART for Debugging
+uart:
+  tx_pin: GPIO1   # ⚠️ VERIFY
+  rx_pin: GPIO3   # ⚠️ VERIFY
+  baud_rate: 115200
+  id: uart_debug
+
+# ============================================================================
+# SENSORS
+# ============================================================================
+
+sensor:
+  # SHTC3 Temperature & Humidity Sensor
+  - platform: shtcx
+    i2c_id: i2c_bus
+    temperature:
+      id: temp_shtc3
+      name: "Temperature (SHTC3)"
+      unit_of_measurement: "°C"
+      accuracy_decimals: 2
+    humidity:
+      id: humidity_shtc3
+      name: "Relative Humidity (SHTC3)"
+      unit_of_measurement: "%"
+      accuracy_decimals: 1
+    update_interval: 30s
+
+  # NTC Thermistor (via ADC)
+  - platform: adc
+    pin: GPIO32  # ⚠️ VERIFY
+    id: adc_ntc
+    name: "Temperature (NTC)"
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    attenuation: 11db
+    update_interval: 30s
+    filters:
+      # ⚠️ This calibration curve MUST be determined from device specs
+      - calibrate_linear:
+          - 0.0 -> 25.0  # Example: 0V -> 25°C
+          - 3.3 -> 10.0  # Example: 3.3V -> 10°C
+
+  # Optional: ALS (Ambient Light Sensor) on ADC
+  - platform: adc
+    pin: GPIO33  # ⚠️ VERIFY
+    id: adc_light
+    name: "Ambient Light Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    attenuation: 11db
+    update_interval: 60s
+    filters:
+      - multiply: 100
+
+# ============================================================================
+# BINARY SENSORS
+# ============================================================================
+
+binary_sensor:
+  # WiFi Status
+  - platform: status
+    name: "WiFi Connected"
+
+# ============================================================================
+# OUTPUTS (GPIO Control)
+# ============================================================================
+
+output:
+  # Fan Speed Control - PWM
+  - platform: ledc
+    pin: GPIO12  # ⚠️ VERIFY - Fan Speed PWM
+    frequency: 5000 Hz
+    id: fan_pwm_speed
+
+  # Fan Direction Control - Relay Coil 1 (Forward/Supply)
+  - platform: gpio
+    pin: GPIO15  # ⚠️ VERIFY - Relay coil +
+    inverted: false
+    id: fan_relay_fwd
+
+  # Fan Direction Control - Relay Coil 2 (Reverse/Exhaust)
+  - platform: gpio
+    pin: GPIO16  # ⚠️ VERIFY - Relay coil -
+    inverted: false
+    id: fan_relay_rev
+
+# ============================================================================
+# FAN CONTROL
+# ============================================================================
+
+fan:
+  - platform: speed
+    output: fan_pwm_speed
+    name: "Ventilation Fan"
+    id: eco_fan
+    speed_count: 5  # NIGHT, LOW, MEDIUM, HIGH, BOOST
+    icon: mdi:fan
+
+# ============================================================================
+# SWITCHES (Manual Controls)
+# ============================================================================
+
+switch:
+  # Manual Fan Direction Control
+  - platform: template
+    name: "Fan Direction"
+    id: fan_direction_switch
+    icon: mdi:arrow-left-right
+    lambda: |-
+      return false;  # Placeholder
+    turn_on_action:
+      - output.set_level:
+          id: fan_relay_fwd
+          level: 1.0
+      - output.set_level:
+          id: fan_relay_rev
+          level: 0.0
+    turn_off_action:
+      - output.set_level:
+          id: fan_relay_fwd
+          level: 0.0
+      - output.set_level:
+          id: fan_relay_rev
+          level: 1.0
+
+  # WiFi Enable/Disable
+  - platform: wifi
+    name: "WiFi"
+    id: wifi_switch
+
+# ============================================================================
+# TEXT SENSORS
+# ============================================================================
+
+text_sensor:
+  # WiFi Info
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    ssid:
+      name: "WiFi SSID"
+    bssid:
+      name: "WiFi BSSID"
+
+# ============================================================================
+# SCRIPTS
+# ============================================================================
+
+script:
+  # Automatic mode: Adjust fan based on temperature/humidity
+  - id: automatic_mode
+    then:
+      - if:
+          condition:
+            sensor.in_range:
+              id: temp_shtc3
+              above: 22.0
+              below: 26.0
+          then:
+            - fan.turn_on:
+                id: eco_fan
+                speed: 0.6  # MEDIUM speed
+          else:
+            - fan.turn_off:
+                id: eco_fan
+
+  # Boost mode: High speed temporary
+  - id: boost_mode
+    then:
+      - fan.turn_on:
+          id: eco_fan
+          speed: 1.0  # BOOST speed
+      - delay: 10min
+      - fan.turn_off:
+          id: eco_fan
+
+# ============================================================================
+# AUTOMATIONS
+# ============================================================================
+
+automation:
+  - alias: "ECOCOMFORT2 Auto Mode"
+    trigger:
+      platform: time_pattern
+      minutes: "/5"  # Every 5 minutes
+    action:
+      - script.execute: automatic_mode
+
