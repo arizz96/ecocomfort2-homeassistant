@@ -26,9 +26,11 @@ def _stagger_offset(address: str) -> float:
     Multiple units are often reachable only through the same BLE proxy, which
     has few simultaneous connection slots; if every unit's timer fires at once
     they queue behind each other and are more likely to time out. Deriving the
-    offset from the address keeps it stable across restarts.
+    offset from the address keeps it stable across restarts. Dashes are
+    dropped too, for macOS, which reports a UUID instead of a MAC address.
     """
-    return int(address.replace(":", ""), 16) % UPDATE_INTERVAL.total_seconds()
+    digits = address.replace(":", "").replace("-", "")
+    return int(digits, 16) % UPDATE_INTERVAL.total_seconds()
 
 
 class EcoComfort2Coordinator(DataUpdateCoordinator[EcoComfort2State]):

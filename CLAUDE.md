@@ -208,9 +208,9 @@ committed test suite. Verify changes with ad-hoc scripts:
   source, e.g. to see which release introduced an API.
 - **Mocking BLE.** Patch `device.establish_connection` and
   `device.bluetooth.async_ble_device_from_address`. Fake clients need
-  `is_connected`, `read_gatt_char`, `write_gatt_char`, `disconnect` (calling
-  the disconnected callback), and `pair`, `unpair`, `clear_cache` where
-  exercised.
+  `is_connected`, `read_gatt_char`, `write_gatt_char` (called with
+  `response=True`), `disconnect` (calling the disconnected callback), and
+  `pair`, `unpair`, `clear_cache` where exercised.
 - **Real-data fixtures** captured from real units (addresses replaced with
   `aa…`, serial with `ab cd`):
   - running main unit in Auto, Sleep active: sensor readings

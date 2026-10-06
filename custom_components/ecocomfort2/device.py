@@ -805,7 +805,7 @@ class EcoComfort2Device:
         _LOGGER.debug("Writing %s <- %s", char, value.hex())
 
         async def write(client: BleakClientWithServiceCache) -> None:
-            await client.write_gatt_char(char, value)
+            await client.write_gatt_char(char, value, response=True)
 
         try:
             await self._gatt_locked(write)
@@ -1035,7 +1035,9 @@ class EcoComfort2Device:
         )
         try:
             await self._gatt_locked(
-                lambda client: client.write_gatt_char(CHAR_CLOCK, value)
+                lambda client: client.write_gatt_char(
+                    CHAR_CLOCK, value, response=True
+                )
             )
         except (BleakError, TimeoutError) as err:
             _LOGGER.debug("Clock sync failed for %s: %s", self.label, err)
