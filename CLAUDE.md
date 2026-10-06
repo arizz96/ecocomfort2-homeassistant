@@ -239,7 +239,9 @@ it.
 ## Git workflow
 
 - **Branch:** `claude/ecocomfort2-ha-ble-component-gru8qo`; push with
-  `git push -u origin <branch>`.
+  `git push -u origin <branch>`. PRs from it are squash-merged into `main`
+  (PR #2 was); once one is merged, restart the branch from the latest `main`
+  for follow-up work, which then goes in a new PR.
 - **Fetch first.** The maintainer also pushes their own commits to this
   branch, so always fetch before pushing and **rebase onto their work**.
   Never overwrite it.

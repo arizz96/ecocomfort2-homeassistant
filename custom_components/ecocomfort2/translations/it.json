@@ -3,10 +3,10 @@
     "flow_title": "{name}",
     "step": {
       "bluetooth_confirm": {
-        "description": "Vuoi configurare {name}?\n\nMetti la VMC in modalità di associazione (tieni premuto il pulsante per circa 5 secondi finché il LED lampeggia) prima di continuare."
+        "description": "Vuoi configurare {name}?\n\nSe l'unità richiede l'associazione, mettila ora in modalità di associazione (tieni premuto il pulsante per circa 5 secondi finché il LED lampeggia): Home Assistant la associa automaticamente alla prima connessione, poco dopo la configurazione. Puoi anche associarla in seguito con il pulsante Pair."
       },
       "user": {
-        "description": "Seleziona la VMC Ecocomfort 2.0 da aggiungere. Metti l'unità in modalità di associazione (tieni premuto il pulsante per circa 5 secondi finché il LED lampeggia) prima di continuare.",
+        "description": "Seleziona la VMC Ecocomfort 2.0 da aggiungere. Se l'unità richiede l'associazione, mettila ora in modalità di associazione (tieni premuto il pulsante per circa 5 secondi finché il LED lampeggia): Home Assistant la associa automaticamente alla prima connessione, poco dopo la configurazione. Puoi anche associarla in seguito con il pulsante Pair.",
         "data": {
           "address": "Dispositivo"
         }

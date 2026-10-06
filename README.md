@@ -129,6 +129,9 @@ Bluetooth proxy.
      their MAC address; both cases are found.
    - If it isn't offered automatically: **Add Integration → Ecocomfort 2.0 VMC**
      and pick it from the list of nearby units.
+   - If the unit needs [pairing](#pairing), put it in pairing mode before you
+     confirm: Home Assistant pairs automatically when it first connects,
+     shortly after setup. You can also pair later with the Pair button.
 3. Repeat for each unit.
 
 The entities appear right away and stay **unavailable until the first
@@ -166,8 +169,9 @@ How pairing behaves:
 
 ## Entities
 
-Entity IDs below use `<device>` for your device's name (for example
-`ecmf2_0000abcd`).
+Entity IDs below use `<device>` for your device's name: for example
+`ecmf2_0000abcd` if the unit advertised its Bluetooth name when it was
+discovered, otherwise `ecocomfort_vmc_aa_bb_cc_dd_ee_ff` (from its address).
 
 ### Controls
 

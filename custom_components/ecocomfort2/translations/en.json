@@ -3,10 +3,10 @@
     "flow_title": "{name}",
     "step": {
       "bluetooth_confirm": {
-        "description": "Do you want to set up {name}?\n\nPut the VMC into pairing mode (hold its button for ~5 seconds until the LED blinks) before continuing."
+        "description": "Do you want to set up {name}?\n\nIf the unit needs pairing, put it in pairing mode now (hold its button for ~5 seconds until the LED blinks): Home Assistant pairs automatically when it first connects, shortly after setup. You can also pair later with the Pair button."
       },
       "user": {
-        "description": "Select the Ecocomfort 2.0 VMC to add. Put the unit into pairing mode (hold its button for ~5 seconds until the LED blinks) before continuing.",
+        "description": "Select the Ecocomfort 2.0 VMC to add. If the unit needs pairing, put it in pairing mode now (hold its button for ~5 seconds until the LED blinks): Home Assistant pairs automatically when it first connects, shortly after setup. You can also pair later with the Pair button.",
         "data": {
           "address": "Device"
         }
