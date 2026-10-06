@@ -9,7 +9,8 @@ with a handful of read/write characteristics.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -111,7 +112,9 @@ def _needs_encryption(err: Exception) -> bool:
     return "insufficient" in text or "encrypt" in text or "authent" in text
 
 
-def describe_command_error(name: str, err: Exception) -> str:
+def describe_command_error(
+    name: str, err: Exception, role: str | None = None
+) -> str:
     """Return a user-facing explanation for a failed command."""
     if _needs_encryption(err):
         return (
@@ -122,6 +125,12 @@ def describe_command_error(name: str, err: Exception) -> str:
     if "not permitted" in str(err).lower():
         # Only reaches the user after a fresh service rediscovery, so the
         # handle is right and the device itself is refusing the write.
+        if role == "satellite":
+            return (
+                f"{name} refused the write. It's a satellite unit, which "
+                "follows its main unit and may refuse commands sent to it "
+                f"directly: control the main unit instead. ({err})"
+            )
         return (
             f"{name} refused the write even after rediscovering its "
             "services. It most likely only accepts commands from a bonded "
@@ -332,11 +341,6 @@ class EcoComfort2Device:
             return
         await self._connect_locked()
 
-    async def async_disconnect(self) -> None:
-        """Tear down the BLE connection."""
-        async with self._lock:
-            await self._disconnect_locked()
-
     async def _disconnect_locked(self) -> None:
         """Close the link, if any. Bounded in time and never raises."""
         client = self._client
@@ -424,8 +428,8 @@ class EcoComfort2Device:
         async with self._lock:
             try:
                 async with asyncio.timeout(POLL_TIMEOUT):
-                    # Always a fresh connection: never reuse a link left over
-                    # from a command, which may look alive but be dead.
+                    # Always a fresh connection: never reuse a leftover link,
+                    # which may look alive but be dead.
                     await self._disconnect_locked()
                     await self._connect_locked()
                     await self._read_all_locked()
@@ -449,13 +453,17 @@ class EcoComfort2Device:
                     )
                     self.state.connected = False
             else:
-                if self._failed_polls >= FAILED_POLLS_BEFORE_UNREACHABLE:
-                    _LOGGER.info("%s reachable again", self.label)
-                self._failed_polls = 0
-                self.state.connected = True
+                self._set_reachable()
             finally:
                 await self._disconnect_locked()
             return self.state
+
+    def _set_reachable(self) -> None:
+        """Record a successful read of the whole state (a poll or a readback)."""
+        if self._failed_polls >= FAILED_POLLS_BEFORE_UNREACHABLE:
+            _LOGGER.info("%s reachable again", self.label)
+        self._failed_polls = 0
+        self.state.connected = True
 
     async def _read_all_locked(self) -> None:
         # Each characteristic is read independently, like the separate
@@ -753,27 +761,51 @@ class EcoComfort2Device:
     # ------------------------------------------------------------------
     # Writes
     # ------------------------------------------------------------------
-    async def _run_bounded_locked(
-        self, command: Awaitable[None], timeout: float = COMMAND_TIMEOUT
-    ) -> None:
-        """Run a command under a hard timeout, dropping the link if it fails."""
+    @asynccontextmanager
+    async def _command(self) -> AsyncIterator[None]:
+        """Hold the lock for a command, then read the state back and disconnect.
+
+        After a successful command the whole state is read back on the same
+        link, so entities show the result right away, without waiting for a
+        poll and its fresh connection. The link is closed either way: held
+        until the next poll, it would tie up one of a proxy's few connection
+        slots, and a failed command may have left it broken.
+        """
+        async with self._lock:
+            try:
+                yield
+                await self._sync_locked()
+            finally:
+                await self._disconnect_locked()
+
+    async def _sync_locked(self) -> None:
+        """Read the whole state back after a command. Never raises.
+
+        Best effort: the command already went through, so a failed readback is
+        only logged, and the next poll catches up.
+        """
+        if not self.connected:
+            return
         try:
-            async with asyncio.timeout(timeout):
-                await command
-        except Exception:
-            # Don't leave a possibly broken link for the next command.
-            await self._disconnect_locked()
-            raise
+            async with asyncio.timeout(COMMAND_TIMEOUT):
+                await self._read_all_locked()
+        except Exception as err:  # noqa: BLE001 - the next poll catches up
+            _LOGGER.debug(
+                "Couldn't read %s back after the command: %s", self.label, err
+            )
+            return
+        self._set_reachable()
 
     async def _write_locked(self, char: str, value: bytes) -> None:
-        await self._run_bounded_locked(self._write_command_locked(char, value))
+        async with asyncio.timeout(COMMAND_TIMEOUT):
+            await self._write_command_locked(char, value)
 
     async def _write_command_locked(self, char: str, value: bytes) -> None:
         await self._ensure_connected()
         _LOGGER.debug("Writing %s <- %s", char, value.hex())
 
         async def write(client: BleakClientWithServiceCache) -> None:
-            await client.write_gatt_char(char, value)
+            await client.write_gatt_char(char, value, response=True)
 
         try:
             await self._gatt_locked(write)
@@ -827,7 +859,9 @@ class EcoComfort2Device:
 
     # The send methods take the change itself and merge it with the last
     # readback under the lock: setting desired_* before waiting for the lock
-    # let a poll in progress overwrite the change with the old value.
+    # let a poll in progress overwrite the change with the old value. Each
+    # runs in _command(), whose readback then replaces desired_* with what
+    # the unit reports.
     async def async_send_operation(
         self, preset: str | None = None, speed: int | None = None
     ) -> None:
@@ -837,7 +871,7 @@ class EcoComfort2Device:
         no manual speed (the unit ignores it), and Sensor shares Auto's mode
         byte, so the unit keeps reacting to its sensors.
         """
-        async with self._lock:
+        async with self._command():
             if (
                 preset is None
                 and speed is not None
@@ -856,7 +890,7 @@ class EcoComfort2Device:
 
     async def async_send_off(self) -> None:
         """Turn the unit off."""
-        async with self._lock:
+        async with self._command():
             await self._write_locked(CHAR_OPER, bytes([MODE_OFF, MODE_OFF]))
 
     def _config_command(
@@ -885,7 +919,7 @@ class EcoComfort2Device:
         season_byte = (
             SEASON_WRITE_SUMMER if season == SEASON_SUMMER else SEASON_WRITE_WINTER
         )
-        async with self._lock:
+        async with self._command():
             await self._write_locked(
                 CHAR_CONFIG, self._config_command(byte4=season_byte)
             )
@@ -893,7 +927,7 @@ class EcoComfort2Device:
     async def async_write_free_cooling(self, level: str) -> None:
         """Write the free cooling level, preserving the season bit."""
         byte4 = FREE_COOLING_WRITE_PREFIX + FREE_COOLING_TO_VALUE[level]
-        async with self._lock:
+        async with self._command():
             await self._write_locked(CHAR_CONFIG, self._config_command(byte4=byte4))
 
     async def async_send_thresholds(
@@ -906,7 +940,7 @@ class EcoComfort2Device:
         voc_advanced: bool | None = None,
     ) -> None:
         """Change thresholds; all of them are written in one command."""
-        async with self._lock:
+        async with self._command():
             hum = _pick(humidity, self.desired_humidity_threshold)
             hum_adv = _pick(humidity_advanced, self.desired_humidity_advanced)
             lum = _pick(luminosity, self.desired_luminosity_threshold)
@@ -932,7 +966,7 @@ class EcoComfort2Device:
         self, *, temp: float | None = None, humidity: float | None = None
     ) -> None:
         """Change calibration offsets; both are written in one command."""
-        async with self._lock:
+        async with self._command():
             temp = _pick(temp, self.desired_temp_offset)
             humidity = _pick(humidity, self.desired_humidity_offset)
             if temp is None or humidity is None:
@@ -948,11 +982,12 @@ class EcoComfort2Device:
             self.desired_humidity_offset = humidity
 
     async def async_pair(self) -> None:
-        """Connect and pair fresh (the Pair button).
+        """Connect and pair fresh (the Pair button), then read the state back.
 
         Raises BleakError if pairing doesn't succeed (TimeoutError if the
         whole attempt overruns), so the user gets feedback. The VMC must be in
-        pairing mode.
+        pairing mode. The readback runs on the newly paired link, so values
+        that need encryption show up right away.
 
         Doesn't unpair first: the original ESPHome package this protocol is
         based on never does either, calling pair() unconditionally on every
@@ -960,10 +995,9 @@ class EcoComfort2Device:
         a round trip, and a possible reconnect if the backend drops the link
         on unpair, against the VMC's short pairing-mode window.
         """
-        async with self._lock:
-            await self._run_bounded_locked(
-                self._pair_fresh_locked(), PAIR_BUTTON_TIMEOUT
-            )
+        async with self._command():
+            async with asyncio.timeout(PAIR_BUTTON_TIMEOUT):
+                await self._pair_fresh_locked()
 
     async def _pair_fresh_locked(self) -> None:
         await self._disconnect_locked()
@@ -971,6 +1005,12 @@ class EcoComfort2Device:
         self._pair_retry_at = 0.0
         await self._connect_locked()
         if not await self._pair_locked():
+            if self._pairing_unsupported:
+                raise BleakError(
+                    f"The Bluetooth adapter or proxy connected to {self.label} "
+                    "can't pair. If it's an ESPHome Bluetooth proxy, update it "
+                    "to ESPHome 2024.3.0 or newer"
+                )
             raise BleakError(
                 f"Pairing with {self.label} failed; put the VMC in pairing "
                 "mode (hold its button ~5s until the LED blinks) and try again"
@@ -995,7 +1035,9 @@ class EcoComfort2Device:
         )
         try:
             await self._gatt_locked(
-                lambda client: client.write_gatt_char(CHAR_CLOCK, value)
+                lambda client: client.write_gatt_char(
+                    CHAR_CLOCK, value, response=True
+                )
             )
         except (BleakError, TimeoutError) as err:
             _LOGGER.debug("Clock sync failed for %s: %s", self.label, err)

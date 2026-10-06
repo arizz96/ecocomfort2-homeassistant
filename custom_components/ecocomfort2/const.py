@@ -9,8 +9,11 @@ DOMAIN = "ecocomfort2"
 MANUFACTURER = "Intelliclima"
 MODEL = "Ecocomfort 2.0"
 
-# BLE local name prefix the VMC advertises with (e.g. "Comfort_1A2B").
-DEVICE_NAME_PREFIX = "Comfort"
+# BLE local names the VMC may advertise: "Comfort_XXXX" per the original
+# ESPHome package's README, or its GAP device name "ECMF2-xxxxxxxx" (serial
+# number suffix). Many units advertise no name at all; the service UUID finds
+# those. Keep in sync with the manifest's bluetooth matchers.
+DEVICE_NAME_PREFIXES = ("Comfort_", "ECMF2-")
 
 # How often the device is polled for fresh readings.
 UPDATE_INTERVAL = timedelta(seconds=30)

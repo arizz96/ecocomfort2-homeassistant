@@ -1,7 +1,17 @@
 {
   "domain": "ecocomfort2",
   "name": "Ecocomfort 2.0 VMC",
-  "version": "0.1.0",
+  "bluetooth": [
+    {
+      "service_uuid": "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
+    },
+    {
+      "local_name": "Comfort_*"
+    },
+    {
+      "local_name": "ECMF2-*"
+    }
+  ],
   "codeowners": ["@arizz96"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],
@@ -10,12 +20,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/arizz96/ecocomfort2-homeassistant/issues",
   "requirements": ["bleak-retry-connector>=3.5.0"],
-  "bluetooth": [
-    {
-      "service_uuid": "f4b827c3-e660-4bc8-bdf6-3c8e9b845e0d"
-    },
-    {
-      "local_name": "Comfort_*"
-    }
-  ]
+  "version": "0.1.0"
 }
