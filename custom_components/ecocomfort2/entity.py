@@ -55,7 +55,9 @@ class EcoComfort2Entity(CoordinatorEntity[EcoComfort2Coordinator]):
             await command
         except (BleakError, TimeoutError) as err:
             raise HomeAssistantError(
-                describe_command_error(self.coordinator.device_name, err)
+                describe_command_error(
+                    self.coordinator.device_name, err, self.data.role
+                )
             ) from err
         finally:
             await self.coordinator.async_request_refresh()

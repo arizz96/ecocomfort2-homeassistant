@@ -319,8 +319,8 @@ more **satellites** that follow it, running in the same or opposite direction.
 `sensor.<device>_role` shows each unit's role.
 
 A satellite follows its main unit, and may refuse operating-mode commands sent
-to it directly (the error mentions "Write not permitted"). Control the
-**main** unit instead.
+to it directly (the error mentions "Write not permitted" and says the unit is
+a satellite). Control the **main** unit instead.
 
 ## Blueprints
 
@@ -373,7 +373,7 @@ Differences in behaviour:
 | Some values show "unknown", log says `Can't read … Insufficient encryption` | That value needs a paired link. Put the unit in pairing mode and press **Pair**. |
 | Pairing fails (e.g. `Pairing failed due to error: 102`) | The unit wasn't in pairing mode, or the window closed. Hold the button until the LED blinks and press **Pair** immediately. |
 | Pairing works but values go unknown again later | Another proxy, not bonded with the unit, may have made the connection. Keep the unit in range of one proxy, or pair through the one in use. |
-| Log says the adapter/proxy "doesn't support pairing" | Update the ESPHome proxy to 2024.3.0 or newer. |
+| Pair button or log says the adapter/proxy can't pair ("doesn't support pairing") | Update the ESPHome proxy to 2024.3.0 or newer. |
 | Command fails with "Write not permitted" | The unit is probably a **satellite**; control its main unit. Otherwise press **Pair** with the unit in pairing mode. |
 | Command fails with "isn't paired" | Put the unit in pairing mode and press **Pair**. |
 | Log warns about an "undocumented … value" | The unit reported a value this integration doesn't know; it shows as unknown. Please open an issue with the log line. |

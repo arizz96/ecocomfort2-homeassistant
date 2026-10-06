@@ -127,7 +127,11 @@ reason.
   optional operations. A failed pair through a proxy drops the link, which
   caused a reconnect loop once with notifications.
 - **The Pair button** pairs without unpairing first (the maintainer's change,
-  matching the package) and surfaces failure as a `HomeAssistantError`.
+  matching the package) and surfaces failure as a `HomeAssistantError` (a
+  separate message when the adapter/proxy can't pair at all).
+- **Command error messages** (`describe_command_error`): "not permitted" on a
+  satellite says to control the main unit (the README's likely cause);
+  otherwise it suggests pairing.
 - **No notifications.** The sensor-readings characteristic supports notify,
   but the unit floods notifications and the CCCD write can require pairing.
   The maintainer explicitly chose 30 s polling only; it was added and removed

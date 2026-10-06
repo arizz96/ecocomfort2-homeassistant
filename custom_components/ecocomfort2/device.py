@@ -111,7 +111,9 @@ def _needs_encryption(err: Exception) -> bool:
     return "insufficient" in text or "encrypt" in text or "authent" in text
 
 
-def describe_command_error(name: str, err: Exception) -> str:
+def describe_command_error(
+    name: str, err: Exception, role: str | None = None
+) -> str:
     """Return a user-facing explanation for a failed command."""
     if _needs_encryption(err):
         return (
@@ -122,6 +124,12 @@ def describe_command_error(name: str, err: Exception) -> str:
     if "not permitted" in str(err).lower():
         # Only reaches the user after a fresh service rediscovery, so the
         # handle is right and the device itself is refusing the write.
+        if role == "satellite":
+            return (
+                f"{name} refused the write. It's a satellite unit, which "
+                "follows its main unit and may refuse commands sent to it "
+                f"directly: control the main unit instead. ({err})"
+            )
         return (
             f"{name} refused the write even after rediscovering its "
             "services. It most likely only accepts commands from a bonded "
@@ -971,6 +979,12 @@ class EcoComfort2Device:
         self._pair_retry_at = 0.0
         await self._connect_locked()
         if not await self._pair_locked():
+            if self._pairing_unsupported:
+                raise BleakError(
+                    f"The Bluetooth adapter or proxy connected to {self.label} "
+                    "can't pair. If it's an ESPHome Bluetooth proxy, update it "
+                    "to ESPHome 2024.3.0 or newer"
+                )
             raise BleakError(
                 f"Pairing with {self.label} failed; put the VMC in pairing "
                 "mode (hold its button ~5s until the LED blinks) and try again"
