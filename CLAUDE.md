@@ -27,7 +27,7 @@ in `README.md`; keep it in sync with behaviour changes.
 | `__init__.py` | Setup without blocking startup; registry cleanup of replaced entities |
 | `entity.py` | Base entity: device info, availability, `_async_command` (UI error messages, then `async_update_listeners`) |
 | `fan.py`, `sensor.py`, `select.py`, `switch.py`, `number.py`, `button.py`, `binary_sensor.py` | Platforms, description-driven |
-| `config_flow.py` | Bluetooth discovery (service UUID, or `Comfort_*` name) and manual pick |
+| `config_flow.py` | Bluetooth discovery (service UUID, or a `Comfort_*`/`ECMF2-*` name) and manual pick |
 | `const.py` | UUIDs, protocol constants, enum option lists |
 | `strings.json`, `translations/en.json`, `translations/it.json` | Config flow + enum state labels (en/it); entity *names* come from code |
 | `brand/` | Icon/logo (used from HA 2026.3); Intelliclima has no separate logo, so `logo*.png` = `icon*.png` |

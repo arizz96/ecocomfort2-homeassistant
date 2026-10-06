@@ -16,6 +16,9 @@
     },
     {
       "local_name": "Comfort_*"
+    },
+    {
+      "local_name": "ECMF2-*"
     }
   ]
 }

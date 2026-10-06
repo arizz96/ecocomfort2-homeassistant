@@ -124,9 +124,9 @@ Bluetooth proxy.
    proxy.
 2. Home Assistant **discovers** it and offers it under
    **Settings → Devices & Services**. Confirm to add it.
-   - Discovery matches the unit's Bluetooth **service**, not its name. Many
-     units don't advertise a name and show up only by their MAC address; both
-     cases are found.
+   - Discovery matches the unit's Bluetooth **service**, or a `Comfort_…` or
+     `ECMF2-…` name. Many units don't advertise a name and show up only by
+     their MAC address; both cases are found.
    - If it isn't offered automatically: **Add Integration → Ecocomfort 2.0 VMC**
      and pick it from the list of nearby units.
 3. Repeat for each unit.
