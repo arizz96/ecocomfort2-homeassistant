@@ -332,7 +332,8 @@ a satellite). Control the **main** unit instead.
 | [Free Cooling Auto](blueprints/vmc_free_cooling_auto.yaml) | Sets free cooling by season and time of day | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Farizz96%2Fecocomfort2-homeassistant%2Fblob%2Fmain%2Fblueprints%2Fvmc_free_cooling_auto.yaml) |
 
 Both pick your units' entities through their inputs, so they work with any
-device names.
+device names. Free Cooling Auto reacts to real season changes only, not to a
+unit coming back after a restart or an outage.
 
 ## Migrating from the ESPHome package
 
