@@ -48,5 +48,5 @@ class EcoComfort2PairButton(EcoComfort2Entity, ButtonEntity):
             ) from err
         except BleakError as err:
             raise HomeAssistantError(str(err)) from err
-        finally:
-            await self.coordinator.async_request_refresh()
+        # The device read its state back over the paired link.
+        self.coordinator.async_update_listeners()

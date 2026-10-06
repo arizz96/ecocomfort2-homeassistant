@@ -50,7 +50,13 @@ class EcoComfort2Entity(CoordinatorEntity[EcoComfort2Coordinator]):
         return self.coordinator.data
 
     async def _async_command(self, command: Awaitable[None]) -> None:
-        """Send a command, surfacing failures in the UI, then refresh state."""
+        """Send a command, surfacing failures in the UI.
+
+        The device reads its whole state back after a successful command, so
+        entities only need to be told to update. Requesting a poll as well
+        made every command wait for it (a fresh connection), and delayed the
+        error message of a failed one.
+        """
         try:
             await command
         except (BleakError, TimeoutError) as err:
@@ -59,5 +65,5 @@ class EcoComfort2Entity(CoordinatorEntity[EcoComfort2Coordinator]):
                     self.coordinator.device_name, err, self.data.role
                 )
             ) from err
-        finally:
-            await self.coordinator.async_request_refresh()
+        # Not async_set_updated_data, which would reset the poll timer.
+        self.coordinator.async_update_listeners()

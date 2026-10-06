@@ -149,7 +149,8 @@ When pairing is needed:
    the LED blinks. The window is short (roughly 30–60 seconds).
 2. **Press `button.<device>_pair`** in Home Assistant while the LED blinks.
 3. **Check the result:** the button reports an error in the UI if pairing
-   failed. On success, values that needed encryption start updating.
+   failed. On success, the unit is read again over the paired link, so values
+   that needed encryption show up right away.
 
 How pairing behaves:
 
@@ -282,9 +283,10 @@ instead, which suits bathrooms and kitchens with short spikes.
   few connection slots.
 - **Staggered start.** A unit's first poll is delayed by an offset derived
   from its address (0–30 s), so several units don't connect at once.
-- **Commands connect on demand.** Changing a setting may take a second or two
-  on the first command after an idle period; the following poll closes the
-  link.
+- **Commands connect on demand.** Each command connects, writes, reads the
+  unit's whole state back on the same connection, and disconnects, so the
+  entities show the result as soon as the command returns, without waiting
+  for the next poll. A failed command reports its error right away.
 - **Reachability.** An occasional failed poll is normal through a proxy, so a
   unit is reported unreachable only after **3 failed polls in a row** (about
   90 seconds). Until then its last values are kept. `binary_sensor.<device>_connected`

@@ -105,7 +105,3 @@ class EcoComfort2Coordinator(DataUpdateCoordinator[EcoComfort2State]):
             device.id, sw_version=state.firmware, serial_number=state.serial
         )
         self._device_info_synced = True
-
-    async def async_shutdown_device(self) -> None:
-        """Disconnect from the device on unload."""
-        await self.device.async_disconnect()
