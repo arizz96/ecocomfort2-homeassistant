@@ -1,0 +1,5 @@
+{
+  "name": "Ecocomfort 2.0 VMC (BLE)",
+  "render_readme": true,
+  "homeassistant": "2026.8.0"
+}

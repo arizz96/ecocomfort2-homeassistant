@@ -1,0 +1,84 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "bluetooth_confirm": {
+        "description": "Do you want to set up {name}?\n\nPut the VMC into pairing mode (hold its button for ~5 seconds until the LED blinks) before continuing."
+      },
+      "user": {
+        "description": "Select the Ecocomfort 2.0 VMC to add. Put the unit into pairing mode (hold its button for ~5 seconds until the LED blinks) before continuing.",
+        "data": {
+          "address": "Device"
+        }
+      }
+    },
+    "abort": {
+      "no_devices_found": "No Ecocomfort 2.0 devices were found nearby. Make sure the unit is powered and in range of a Bluetooth adapter or connectable proxy. Devices are identified by their BLE service, not their advertised name, so this works even if the unit only shows its MAC address.",
+      "already_configured": "This device is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "role": {
+        "state": {
+          "standalone": "Standalone",
+          "main": "Main unit",
+          "satellite": "Satellite unit"
+        }
+      },
+      "direction": {
+        "state": {
+          "off": "Off",
+          "intake": "Intake",
+          "exhaust": "Exhaust"
+        }
+      },
+      "actual_mode": {
+        "state": {
+          "off": "Off",
+          "in": "In",
+          "out": "Out",
+          "in_out": "In/Out (heat recovery)",
+          "sensor": "Sensor",
+          "auto": "Auto"
+        }
+      },
+      "actual_speed": {
+        "state": {
+          "off": "Off",
+          "sleep": "Sleep",
+          "speed_1": "Speed 1",
+          "speed_2": "Speed 2",
+          "speed_3": "Speed 3",
+          "boost": "Boost"
+        }
+      }
+    },
+    "select": {
+      "humidity_threshold": {
+        "state": {
+          "off": "Off",
+          "low": "Low (55%)",
+          "medium": "Medium (60%)",
+          "high": "High (65%)"
+        }
+      },
+      "luminosity_threshold": {
+        "state": {
+          "off": "Off",
+          "low": "Low (0.100 lux)",
+          "medium": "Medium (0.125 lux)",
+          "high": "High (0.150 lux)"
+        }
+      },
+      "voc_threshold": {
+        "state": {
+          "off": "Off",
+          "low": "Low (250 ppm)",
+          "medium": "Medium (300 ppm)",
+          "high": "High (350 ppm)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "bluetooth_confirm": {
+        "description": "Vuoi configurare {name}?\n\nMetti la VMC in modalità di associazione (tieni premuto il pulsante per circa 5 secondi finché il LED lampeggia) prima di continuare."
+      },
+      "user": {
+        "description": "Seleziona la VMC Ecocomfort 2.0 da aggiungere. Metti l'unità in modalità di associazione (tieni premuto il pulsante per circa 5 secondi finché il LED lampeggia) prima di continuare.",
+        "data": {
+          "address": "Dispositivo"
+        }
+      }
+    },
+    "abort": {
+      "no_devices_found": "Nessuna VMC Ecocomfort 2.0 trovata nelle vicinanze. Assicurati che l'unità sia alimentata e nel raggio di un adattatore Bluetooth o di un proxy connettibile. I dispositivi vengono riconosciuti dal servizio BLE, non dal nome, quindi funziona anche se l'unità mostra solo il suo indirizzo MAC.",
+      "already_configured": "Questo dispositivo è già configurato."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "role": {
+        "state": {
+          "standalone": "Autonoma",
+          "main": "Unità principale",
+          "satellite": "Unità satellite"
+        }
+      },
+      "direction": {
+        "state": {
+          "off": "Ferma",
+          "intake": "Immissione",
+          "exhaust": "Estrazione"
+        }
+      },
+      "actual_mode": {
+        "state": {
+          "off": "Spenta",
+          "in": "Immissione",
+          "out": "Estrazione",
+          "in_out": "Immissione/Estrazione (recupero calore)",
+          "sensor": "Sensore",
+          "auto": "Automatica"
+        }
+      },
+      "actual_speed": {
+        "state": {
+          "off": "Spenta",
+          "sleep": "Sleep",
+          "speed_1": "Velocità 1",
+          "speed_2": "Velocità 2",
+          "speed_3": "Velocità 3",
+          "boost": "Boost"
+        }
+      }
+    },
+    "select": {
+      "humidity_threshold": {
+        "state": {
+          "off": "Disattivata",
+          "low": "Bassa (55%)",
+          "medium": "Media (60%)",
+          "high": "Alta (65%)"
+        }
+      },
+      "luminosity_threshold": {
+        "state": {
+          "off": "Disattivata",
+          "low": "Bassa (0,100 lux)",
+          "medium": "Media (0,125 lux)",
+          "high": "Alta (0,150 lux)"
+        }
+      },
+      "voc_threshold": {
+        "state": {
+          "off": "Disattivata",
+          "low": "Bassa (250 ppm)",
+          "medium": "Media (300 ppm)",
+          "high": "Alta (350 ppm)"
+        }
+      }
+    }
+  }
+}
