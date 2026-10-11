@@ -196,6 +196,7 @@ discovered, otherwise `ecocomfort_vmc_aa_bb_cc_dd_ee_ff` (from its address).
 | `sensor.<device>_temperature` | Indoor temperature (°C) |
 | `sensor.<device>_humidity` | Indoor relative humidity (%) |
 | `sensor.<device>_voc` | Air quality (VOC), see [below](#about-the-voc-reading) |
+| `sensor.<device>_nominal_power` | Catalogue power (W) for the speed the unit is running at, from the [speed table](#speeds) (0 W when off, Boost counted as Speed 3). Not a measurement |
 
 ### Diagnostics
 

@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
+    UnitOfPower,
     UnitOfRatio,
     UnitOfTemperature,
 )
@@ -25,6 +26,7 @@ from .const import (
     OPERATING_MODE_OPTIONS,
     ROLE_OPTIONS,
     SPEED_LEVEL_OPTIONS,
+    SPEED_LEVEL_POWER,
 )
 from .coordinator import EcoComfort2ConfigEntry
 from .device import EcoComfort2State
@@ -98,6 +100,16 @@ SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
         options=SPEED_LEVEL_OPTIONS,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda state: state.speed_level,
+    ),
+    EcoComfort2SensorDescription(
+        key="nominal_power",
+        name="Nominal Power",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_display_precision=1,
+        # Catalogue figure for the running speed, not a measurement.
+        value_fn=lambda state: SPEED_LEVEL_POWER.get(state.speed_level),
     ),
     EcoComfort2SensorDescription(
         key="role",
