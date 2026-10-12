@@ -25,9 +25,9 @@ in `README.md`; keep it in sync with behaviour changes.
 | `device.py` | Everything BLE: connection lifecycle, pairing, polling, parsing, command encoding. `EcoComfort2Device` + `EcoComfort2State` |
 | `coordinator.py` | `DataUpdateCoordinator`: 30 s poll, staggered first poll, hourly clock sync, device-registry firmware/serial |
 | `__init__.py` | Setup without blocking startup; registry cleanup of replaced entities |
-| `entity.py` | Base entity: device info, availability, `_async_command` (UI error messages + refresh) |
+| `entity.py` | Base entity: device info, availability, `_async_command` (UI error messages, then `async_update_listeners`) |
 | `fan.py`, `sensor.py`, `select.py`, `switch.py`, `number.py`, `button.py`, `binary_sensor.py` | Platforms, description-driven |
-| `config_flow.py` | Bluetooth discovery (service UUID, or `Comfort_*` name) and manual pick |
+| `config_flow.py` | Bluetooth discovery (service UUID, or a `Comfort_*`/`ECMF2-*` name) and manual pick |
 | `const.py` | UUIDs, protocol constants, enum option lists |
 | `strings.json`, `translations/en.json`, `translations/it.json` | Config flow + enum state labels (en/it); entity *names* come from code |
 | `brand/` | Icon/logo (used from HA 2026.3); Intelliclima has no separate logo, so `logo*.png` = `icon*.png` |
@@ -83,8 +83,19 @@ reason.
 
 - **Connect → read → disconnect on every poll.** No persistent link: the units
   or proxies drop idle connections within a minute, and a held link wastes an
-  ESP32 proxy's ~3 slots. Each poll opens a *fresh* connection, closing any
-  left over from a command first.
+  ESP32 proxy's ~3 slots. Each poll opens a *fresh* connection.
+- **Commands: connect → write → read back → disconnect** (`_command()`). After
+  a successful write the whole state is read back on the same link (bounded by
+  `COMMAND_TIMEOUT`, best effort: a failed readback is only logged at debug;
+  it may pair, like the poll it replaces)
+  and the entity calls `async_update_listeners`. A full readback counts as a
+  successful poll for reachability. Entities used to await
+  `async_request_refresh()` instead, which made every command wait for a
+  fresh-connection poll and delayed a failed command's error until it ended
+  (the maintainer asked for the readback, 2026-10-06). So no link is ever
+  open outside the lock, and unload doesn't disconnect: waiting for the lock
+  there made a reload wait for a hung poll, and HA cancels the in-flight poll
+  (a background task) after `async_unload_entry`, whose `finally` disconnects.
 - **Hard timeouts.** `POLL_TIMEOUT` 120 s, `COMMAND_TIMEOUT` 60 s,
   `PAIR_BUTTON_TIMEOUT` 120 s, `DISCONNECT_TIMEOUT` 10 s. The coordinator schedules the next poll only after
   the current one returns, and all BLE work shares one `asyncio.Lock`, so
@@ -98,7 +109,8 @@ reason.
 - **Commands pass their change into the device method** (e.g.
   `async_send_operation(speed=…)`, `async_send_thresholds(voc=…)`), which
   merges it with the `desired_*` readback *under the lock* and updates
-  `desired_*` only after a successful write. Setting `desired_*` from an entity
+  `desired_*` only after a successful write (the readback that follows then
+  sets them from what the unit reports). Setting `desired_*` from an entity
   before waiting for the lock let a running poll overwrite the change with the
   old value (reproduced in a simulation). Grouped writes (thresholds, offsets)
   refuse with a `HomeAssistantError` while a value they would resend is still
@@ -127,7 +139,13 @@ reason.
   optional operations. A failed pair through a proxy drops the link, which
   caused a reconnect loop once with notifications.
 - **The Pair button** pairs without unpairing first (the maintainer's change,
-  matching the package) and surfaces failure as a `HomeAssistantError`.
+  matching the package) and surfaces failure as a `HomeAssistantError` (a
+  separate message when the adapter/proxy can't pair at all). On success its
+  readback runs over the paired link, so an unreachable unit comes back at
+  once.
+- **Command error messages** (`describe_command_error`): "not permitted" on a
+  satellite says to control the main unit (the README's likely cause);
+  otherwise it suggests pairing.
 - **No notifications.** The sensor-readings characteristic supports notify,
   but the unit floods notifications and the CCCD write can require pairing.
   The maintainer explicitly chose 30 s polling only; it was added and removed
@@ -190,9 +208,9 @@ committed test suite. Verify changes with ad-hoc scripts:
   source, e.g. to see which release introduced an API.
 - **Mocking BLE.** Patch `device.establish_connection` and
   `device.bluetooth.async_ble_device_from_address`. Fake clients need
-  `is_connected`, `read_gatt_char`, `write_gatt_char`, `disconnect` (calling
-  the disconnected callback), and `pair`, `unpair`, `clear_cache` where
-  exercised.
+  `is_connected`, `read_gatt_char`, `write_gatt_char` (called with
+  `response=True`), `disconnect` (calling the disconnected callback), and
+  `pair`, `unpair`, `clear_cache` where exercised.
 - **Real-data fixtures** captured from real units (addresses replaced with
   `aa…`, serial with `ab cd`):
   - running main unit in Auto, Sleep active: sensor readings
@@ -221,7 +239,9 @@ it.
 ## Git workflow
 
 - **Branch:** `claude/ecocomfort2-ha-ble-component-gru8qo`; push with
-  `git push -u origin <branch>`.
+  `git push -u origin <branch>`. PRs from it are squash-merged into `main`
+  (PR #2 was); once one is merged, restart the branch from the latest `main`
+  for follow-up work, which then goes in a new PR.
 - **Fetch first.** The maintainer also pushes their own commits to this
   branch, so always fetch before pushing and **rebase onto their work**.
   Never overwrite it.

@@ -13,7 +13,7 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_ADDRESS
 
-from .const import DEVICE_NAME_PREFIX, DOMAIN, SERVICE_UUID
+from .const import DEVICE_NAME_PREFIXES, DOMAIN, SERVICE_UUID
 
 
 def _advertises_service(info: BluetoothServiceInfoBleak) -> bool:
@@ -26,10 +26,10 @@ def _is_ecocomfort2(info: BluetoothServiceInfoBleak) -> bool:
 
     Many units don't broadcast a local name at all (the BLE stack then
     reports the MAC address as the "name"), so the service UUID is the
-    more reliable signal; the name prefix is kept as a fallback for units
+    more reliable signal; the name prefixes are kept as a fallback for units
     that do advertise one.
     """
-    if info.name and info.name.startswith(DEVICE_NAME_PREFIX):
+    if info.name and info.name.startswith(DEVICE_NAME_PREFIXES):
         return True
     return _advertises_service(info)
 

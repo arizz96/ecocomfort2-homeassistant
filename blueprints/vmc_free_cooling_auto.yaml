@@ -76,12 +76,16 @@ mode: single
 max_exceeded: silent
 
 trigger:
+  # not_from: a unit coming back (after a restart, a reload or an outage) isn't
+  # a season change, and shouldn't overwrite the current free cooling level.
   - platform: state
     entity_id: !input vmc_season_entities
+    not_from: ["unavailable", "unknown"]
     to: "Summer"
     id: to_summer
   - platform: state
     entity_id: !input vmc_season_entities
+    not_from: ["unavailable", "unknown"]
     to: "Winter"
     id: to_winter
   - platform: time

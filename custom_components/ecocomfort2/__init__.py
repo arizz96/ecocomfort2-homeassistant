@@ -77,8 +77,11 @@ async def async_setup_entry(
 async def async_unload_entry(
     hass: HomeAssistant, entry: EcoComfort2ConfigEntry
 ) -> bool:
-    """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        await entry.runtime_data.async_shutdown_device()
-    return unload_ok
+    """Unload a config entry.
+
+    There's no link to close: polls and commands disconnect when they finish,
+    and Home Assistant cancels a poll still running (a background task) after
+    this returns, which disconnects too. Waiting for the device lock here made
+    a reload wait for a hung poll, up to POLL_TIMEOUT.
+    """
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

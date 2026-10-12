@@ -124,11 +124,14 @@ Bluetooth proxy.
    proxy.
 2. Home Assistant **discovers** it and offers it under
    **Settings → Devices & Services**. Confirm to add it.
-   - Discovery matches the unit's Bluetooth **service**, not its name. Many
-     units don't advertise a name and show up only by their MAC address; both
-     cases are found.
+   - Discovery matches the unit's Bluetooth **service**, or a `Comfort_…` or
+     `ECMF2-…` name. Many units don't advertise a name and show up only by
+     their MAC address; both cases are found.
    - If it isn't offered automatically: **Add Integration → Ecocomfort 2.0 VMC**
      and pick it from the list of nearby units.
+   - If the unit needs [pairing](#pairing), put it in pairing mode before you
+     confirm: Home Assistant pairs automatically when it first connects,
+     shortly after setup. You can also pair later with the Pair button.
 3. Repeat for each unit.
 
 The entities appear right away and stay **unavailable until the first
@@ -149,7 +152,8 @@ When pairing is needed:
    the LED blinks. The window is short (roughly 30–60 seconds).
 2. **Press `button.<device>_pair`** in Home Assistant while the LED blinks.
 3. **Check the result:** the button reports an error in the UI if pairing
-   failed. On success, values that needed encryption start updating.
+   failed. On success, the unit is read again over the paired link, so values
+   that needed encryption show up right away.
 
 How pairing behaves:
 
@@ -165,8 +169,9 @@ How pairing behaves:
 
 ## Entities
 
-Entity IDs below use `<device>` for your device's name (for example
-`ecmf2_0000abcd`).
+Entity IDs below use `<device>` for your device's name: for example
+`ecmf2_0000abcd` if the unit advertised its Bluetooth name when it was
+discovered, otherwise `ecocomfort_vmc_aa_bb_cc_dd_ee_ff` (from its address).
 
 ### Controls
 
@@ -282,9 +287,10 @@ instead, which suits bathrooms and kitchens with short spikes.
   few connection slots.
 - **Staggered start.** A unit's first poll is delayed by an offset derived
   from its address (0–30 s), so several units don't connect at once.
-- **Commands connect on demand.** Changing a setting may take a second or two
-  on the first command after an idle period; the following poll closes the
-  link.
+- **Commands connect on demand.** Each command connects, writes, reads the
+  unit's whole state back on the same connection, and disconnects, so the
+  entities show the result as soon as the command returns, without waiting
+  for the next poll. A failed command reports its error right away.
 - **Reachability.** An occasional failed poll is normal through a proxy, so a
   unit is reported unreachable only after **3 failed polls in a row** (about
   90 seconds). Until then its last values are kept. `binary_sensor.<device>_connected`
@@ -319,8 +325,8 @@ more **satellites** that follow it, running in the same or opposite direction.
 `sensor.<device>_role` shows each unit's role.
 
 A satellite follows its main unit, and may refuse operating-mode commands sent
-to it directly (the error mentions "Write not permitted"). Control the
-**main** unit instead.
+to it directly (the error mentions "Write not permitted" and says the unit is
+a satellite). Control the **main** unit instead.
 
 ## Blueprints
 
@@ -330,7 +336,8 @@ to it directly (the error mentions "Write not permitted"). Control the
 | [Free Cooling Auto](blueprints/vmc_free_cooling_auto.yaml) | Sets free cooling by season and time of day | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Farizz96%2Fecocomfort2-homeassistant%2Fblob%2Fmain%2Fblueprints%2Fvmc_free_cooling_auto.yaml) |
 
 Both pick your units' entities through their inputs, so they work with any
-device names.
+device names. Free Cooling Auto reacts to real season changes only, not to a
+unit coming back after a restart or an outage.
 
 ## Migrating from the ESPHome package
 
@@ -373,7 +380,7 @@ Differences in behaviour:
 | Some values show "unknown", log says `Can't read … Insufficient encryption` | That value needs a paired link. Put the unit in pairing mode and press **Pair**. |
 | Pairing fails (e.g. `Pairing failed due to error: 102`) | The unit wasn't in pairing mode, or the window closed. Hold the button until the LED blinks and press **Pair** immediately. |
 | Pairing works but values go unknown again later | Another proxy, not bonded with the unit, may have made the connection. Keep the unit in range of one proxy, or pair through the one in use. |
-| Log says the adapter/proxy "doesn't support pairing" | Update the ESPHome proxy to 2024.3.0 or newer. |
+| Pair button or log says the adapter/proxy can't pair ("doesn't support pairing") | Update the ESPHome proxy to 2024.3.0 or newer. |
 | Command fails with "Write not permitted" | The unit is probably a **satellite**; control its main unit. Otherwise press **Pair** with the unit in pairing mode. |
 | Command fails with "isn't paired" | Put the unit in pairing mode and press **Pair**. |
 | Log warns about an "undocumented … value" | The unit reported a value this integration doesn't know; it shows as unknown. Please open an issue with the log line. |
