@@ -139,16 +139,6 @@ OPERATING_MODE_OPTIONS = ["off", "in", "out", "in_out", "sensor", "auto"]
 # Running speed, decoded from C_STATE byte 1 (low 3 bits after flag overrides).
 RUNNING_SPEED_MASK = 0x07
 SPEED_LEVEL_OPTIONS = ["off", "sleep", "speed_1", "speed_2", "speed_3", "boost"]
-# Nominal electrical power (W) per running speed, from the README's speed table.
-# Boost runs at maximum speed, so it uses the Vel 3 figure.
-SPEED_LEVEL_POWER = {
-    "off": 0.0,
-    "sleep": 2.0,
-    "speed_1": 2.5,
-    "speed_2": 4.0,
-    "speed_3": 6.3,
-    "boost": 6.3,
-}
 VALUE_TO_SPEED_LEVEL = {1: "sleep", 2: "speed_1", 3: "speed_2", 4: "speed_3", 5: "boost"}
 
 # Sensor-mode threshold levels (C_CONFIGURATION bytes 1-3, low bits).
