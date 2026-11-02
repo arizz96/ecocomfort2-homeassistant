@@ -64,9 +64,13 @@ each part:
   - The brightness thresholds read 0.1/0.125/0.150 "lux"; that's a vendor scale
     name, not a physical unit.
 - **Unverified:**
-  - Direction byte 1 = intake, 2 = exhaust is an assumption. A satellite set
-    to "opposite" rotation read the other value at the same moment, which
-    supports it being a direction byte.
+  - Direction byte 1 = exhaust, 2 = intake is inferred (it was first assumed
+    the other way round). A satellite set to "opposite" rotation read the
+    other value at the same moment, which supports it being a direction byte.
+    After setting the satellite to "same" (rotation select, byte 5 = 1) and
+    the main unit to In, both read 2 (sensor readings
+    `01 02 02 06 1e 15 83 00 40` and `01 02 02 06 5f 17 49 00 92`), while a
+    unit mid-cycle in In/Out read 1. Not yet confirmed against a unit in Out.
   - The meaning of the high nibble of sensor-readings byte 0 is unknown.
 - **VOC** is the device's own scale, not a concentration: about 220 is
   normal. Unit `UnitOfRatio.PARTS_PER_MILLION` (the manufacturer's label) with

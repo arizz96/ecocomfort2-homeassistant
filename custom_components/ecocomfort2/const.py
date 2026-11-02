@@ -134,9 +134,10 @@ VALUE_TO_ROLE = {0: "standalone", 1: "main", 2: "satellite"}
 ROLE_OPTIONS = list(VALUE_TO_ROLE.values())
 
 # C_STATE byte 2: the airflow direction the unit is running right now (it
-# alternates in In/Out mode). Assumed to follow the device's own direction
-# encoding used by the mode byte (1 = in, 2 = out); no source documents it.
-VALUE_TO_DIRECTION = {1: "intake", 2: "exhaust"}
+# alternates in In/Out mode). Not the encoding of the mode byte: a main unit
+# commanded to In (running mode 1) and its same-direction satellite both read 2,
+# while a unit mid-cycle in In/Out read 1. Inferred from that, not documented.
+VALUE_TO_DIRECTION = {1: "exhaust", 2: "intake"}
 # Shown while the unit is off, when there's no airflow to report.
 DIRECTION_OFF = "off"
 DIRECTION_OPTIONS = [DIRECTION_OFF, *VALUE_TO_DIRECTION.values()]
