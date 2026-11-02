@@ -170,8 +170,9 @@ reason.
   `DeviceInfo` must not set them, because passing unknown values clears them.
 - **Indoor/outdoor readings.** The unit has one temperature/humidity/VOC
   sensor, so the values describe the air passing it: exhaust = indoor
-  (the original `temperature`/`humidity`/`voc` keys), intake = outdoor
-  (`outdoor_*`). Each set updates only in its phase and holds its last value;
+  (`indoor_*`), intake = outdoor (`outdoor_*`). `async_setup_entry` renames
+  the registry entries of the former `temperature`/`humidity`/`voc` sensors to
+  `indoor_*` (unique ID and entity ID), keeping history. Each set updates only in its phase and holds its last value;
   the first poll after a direction change is skipped. Held values are cleared
   on a failed read and when the unit becomes unreachable.
 - **Coordinator updates must not reset the timer.** Never use

@@ -170,9 +170,9 @@ class EcoComfort2State:
     # The readings sample the air passing the sensor: indoor air while the unit
     # exhausts, outdoor air while it takes air in. Each set is only updated in
     # its own phase and holds its last value in between.
-    temperature: float | None = None  # indoor
-    humidity: float | None = None  # indoor
-    voc: float | None = None  # indoor
+    indoor_temperature: float | None = None
+    indoor_humidity: float | None = None
+    indoor_voc: float | None = None
     outdoor_temperature: float | None = None
     outdoor_humidity: float | None = None
     outdoor_voc: float | None = None
@@ -620,9 +620,9 @@ class EcoComfort2Device:
         voc_raw = int.from_bytes(data[7:9], "big", signed=False)
         voc = None if voc_raw == VOC_NO_READING else float(voc_raw)
         if direction == "exhaust":
-            self.state.temperature = temperature
-            self.state.humidity = humidity
-            self.state.voc = voc
+            self.state.indoor_temperature = temperature
+            self.state.indoor_humidity = humidity
+            self.state.indoor_voc = voc
         else:
             self.state.outdoor_temperature = temperature
             self.state.outdoor_humidity = humidity
@@ -637,9 +637,9 @@ class EcoComfort2Device:
         self._clear_readings()
 
     def _clear_readings(self) -> None:
-        self.state.temperature = None
-        self.state.humidity = None
-        self.state.voc = None
+        self.state.indoor_temperature = None
+        self.state.indoor_humidity = None
+        self.state.indoor_voc = None
         self.state.outdoor_temperature = None
         self.state.outdoor_humidity = None
         self.state.outdoor_voc = None

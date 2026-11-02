@@ -47,25 +47,25 @@ SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
     EcoComfort2SensorDescription(
         # Indoor air: sampled while the unit exhausts. Keys (unique IDs) are
         # unchanged from when these were the only readings.
-        key="temperature",
+        key="indoor_temperature",
         name="Indoor Temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         suggested_display_precision=1,
-        value_fn=lambda state: state.temperature,
+        value_fn=lambda state: state.indoor_temperature,
     ),
     EcoComfort2SensorDescription(
-        key="humidity",
+        key="indoor_humidity",
         name="Indoor Humidity",
         device_class=SensorDeviceClass.HUMIDITY,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=1,
-        value_fn=lambda state: state.humidity,
+        value_fn=lambda state: state.indoor_humidity,
     ),
     EcoComfort2SensorDescription(
-        key="voc",
+        key="indoor_voc",
         name="Indoor VOC",
         # The device's own air-quality scale, labelled "ppm" by the manufacturer
         # (manual: VOC thresholds 250/300/350 ppm; the app graphs it as
@@ -74,7 +74,7 @@ SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfRatio.PARTS_PER_MILLION,
         icon="mdi:air-filter",
-        value_fn=lambda state: state.voc,
+        value_fn=lambda state: state.indoor_voc,
     ),
     # Outdoor air: sampled while the unit takes air in.
     EcoComfort2SensorDescription(
