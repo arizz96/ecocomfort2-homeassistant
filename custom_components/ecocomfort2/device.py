@@ -594,6 +594,7 @@ class EcoComfort2Device:
         if len(data) < 9:
             self._clear_state()
             return
+        _LOGGER.debug("%s sensor readings: %s", self.label, data.hex(" "))
         self._parse_running(data[0], data[1])
         # A stopped unit has no airflow; its direction byte is then
         # meaningless, so don't decode (and warn about) it.
