@@ -548,7 +548,9 @@ class EcoComfort2Device:
             _LOGGER.info(
                 "Reading %s from %s works again", CHAR_NAMES[char], self.label
             )
-        return bytes(data)
+        raw = bytes(data)
+        _LOGGER.debug("Read %s from %s: %s", CHAR_NAMES[char], self.label, raw.hex(" "))
+        return raw
 
     def _note_read_failure(self, char: str, err: Exception) -> None:
         known = char in self._failing
