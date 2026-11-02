@@ -250,7 +250,6 @@ class EcoComfort2Device:
         # learned from the advertisement or the GAP Device Name characteristic.
         self.name = name
         self.state = EcoComfort2State()
-        self._last_direction: str | None = None
 
         self._lock = asyncio.Lock()
         self._client: BleakClientWithServiceCache | None = None
@@ -464,7 +463,6 @@ class EcoComfort2Device:
                     )
                     self.state.connected = False
                     # Held readings would be old when the unit comes back.
-                    self._last_direction = None
                     self._clear_readings()
             else:
                 self._set_reachable()
@@ -605,12 +603,11 @@ class EcoComfort2Device:
             else self._decode("direction", data[2], VALUE_TO_DIRECTION)
         )
         self.state.direction = direction
-        previous, self._last_direction = self._last_direction, direction
         # The readings sample the air in the current direction, so they go to
-        # the exhaust or intake set. Skip the first poll after a direction
-        # change (the sensor may still show the previous airflow), and when
-        # stopped or unknown; the other set keeps its last value.
-        if direction not in ("exhaust", "intake") or direction != previous:
+        # the exhaust or intake set; the other set keeps its last value. Not
+        # while stopped or unknown. (Phases last about as long as a poll
+        # interval, so a reading can't be skipped as "just after a change".)
+        if direction not in ("exhaust", "intake"):
             return
         # The device reports fixed "no reading" values (documented for the
         # vendor cloud API as 327.67 / 143 / 65535); show those as unknown.
@@ -634,7 +631,6 @@ class EcoComfort2Device:
         self.state.speed_level = None
         self.state.running_speed = None
         self.state.direction = None
-        self._last_direction = None
         self._clear_readings()
 
     def _clear_readings(self) -> None:

@@ -207,10 +207,11 @@ That is **not** outdoor air (in one check, 17 °C intake against 9 °C outside a
 18 °C in the room), so use a separate outdoor sensor for the outside
 temperature. The exhaust entities update only while the unit exhausts and the
 intake ones only while it takes air in; each set keeps its last value in
-between. The first poll after a direction change is ignored (the sensor may
-still show the previous airflow), and nothing updates while the unit is off or
-unreachable. A unit that only runs In or only Out fills just one of the two
-sets.
+between. Nothing updates while the unit is off or unreachable. A unit that
+only runs In or only Out fills just one of the two sets. In In/Out mode the
+airflow reverses about every 30 s, as often as the unit is polled, so each poll
+interval varies randomly by ±10 s (30 s on average); a fixed interval would
+sample the same phase every time.
 
 Updating from an earlier version renames the old `_temperature`, `_humidity`
 and `_voc` entities (and the interim `_indoor_…` / `_outdoor_…` ones) to

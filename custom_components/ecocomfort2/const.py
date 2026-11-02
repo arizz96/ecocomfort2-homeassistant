@@ -17,6 +17,8 @@ DEVICE_NAME_PREFIXES = ("Comfort_", "ECMF2-")
 
 # How often the device is polled for fresh readings.
 UPDATE_INTERVAL = timedelta(seconds=30)
+# Random +/- seconds on each poll interval (averages out to UPDATE_INTERVAL).
+POLL_JITTER = 10.0
 
 # Re-sync the device clock at most this often.
 CLOCK_SYNC_INTERVAL = timedelta(hours=1)
