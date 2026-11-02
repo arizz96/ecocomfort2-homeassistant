@@ -213,11 +213,6 @@ airflow reverses about every 30 s, as often as the unit is polled, so each poll
 interval varies randomly by ±10 s (30 s on average); a fixed interval would
 sample the same phase every time.
 
-Updating from an earlier version renames the old `_temperature`, `_humidity`
-and `_voc` entities (and the interim `_indoor_…` / `_outdoor_…` ones) to
-`_exhaust_…` / `_intake_…` in place, keeping their history. Automations and
-dashboards that reference the old entity IDs need updating.
-
 ### Diagnostics
 
 | Entity | What it shows |

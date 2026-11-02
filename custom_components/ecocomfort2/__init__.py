@@ -44,33 +44,6 @@ async def async_setup_entry(
     # firmware sensor restated the device page.
     registry = er.async_get(hass)
 
-    # The temperature/humidity/VOC sensors were renamed twice: first to
-    # indoor_*/outdoor_*, then to exhaust_*/intake_* (the readings are taken
-    # per airflow direction, and the intake ones aren't outdoor air). Renaming
-    # the registry entry (unique ID, and the entity ID if it still follows the
-    # default name) keeps the entity, so its history carries over.
-    for old_prefix, new_prefix in (
-        ("", "exhaust_"),
-        ("indoor_", "exhaust_"),
-        ("outdoor_", "intake_"),
-    ):
-        for name in ("temperature", "humidity", "voc"):
-            old_key, new_key = f"{old_prefix}{name}", f"{new_prefix}{name}"
-            entity_id = registry.async_get_entity_id(
-                Platform.SENSOR, DOMAIN, f"{address}_{old_key}"
-            )
-            new_unique_id = f"{address}_{new_key}"
-            if entity_id is None or registry.async_get_entity_id(
-                Platform.SENSOR, DOMAIN, new_unique_id
-            ):
-                continue
-            changes: dict[str, str] = {"new_unique_id": new_unique_id}
-            if entity_id.endswith(f"_{old_key}"):
-                new_entity_id = f"{entity_id[: -len(old_key)]}{new_key}"
-                if registry.async_get(new_entity_id) is None:
-                    changes["new_entity_id"] = new_entity_id
-            registry.async_update_entity(entity_id, **changes)
-
     for platform, key in (
         (Platform.NUMBER, "humidity_threshold"),
         (Platform.NUMBER, "luminosity_threshold"),

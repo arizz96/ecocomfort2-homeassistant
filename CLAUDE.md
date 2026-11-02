@@ -174,9 +174,7 @@ reason.
   supply air while taking air in (`intake_*`). The intake set is **not**
   outdoor air (maintainer's check: intake 17 °C, room 18 °C, outside 9 °C), so
   don't name or document it as such; an earlier version did.
-  `async_setup_entry` renames the registry entries of the former
-  `temperature`/`humidity`/`voc`, `indoor_*` and `outdoor_*` sensors (unique ID
-  and entity ID), keeping history. Each set updates only in its phase and holds
+  Each set updates only in its phase and holds
   its last value; held values are cleared on a failed read and when the unit
   becomes unreachable. In In/Out mode the direction flips about every 30 s
   (maintainer's Direction history), as often as the poll interval, so a fixed
