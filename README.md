@@ -330,6 +330,14 @@ A satellite follows its main unit, and may refuse operating-mode commands sent
 to it directly (the error mentions "Write not permitted" and says the unit is
 a satellite). Control the **main** unit instead.
 
+`select.<satellite>_satellite_rotation` (satellites only; unavailable on other
+units) sets whether the satellite runs in the **Same** or **Opposite**
+direction as its main unit (the Intelliclima app calls it
+concordant/discordant, Home Assistant's own integration "Fan Direction Mode").
+With **Opposite**, a main unit set to In makes the satellite blow Out; choose
+**Same** to have both units take air in. Writing this setting over Bluetooth is
+untested on real units: the values come from the vendor cloud API.
+
 ## Blueprints
 
 | Blueprint | Description | Import |
@@ -455,7 +463,8 @@ manual, and GATT dumps of real units.
 - Byte 4: **season in the high nibble** (0 winter, 1 summer) and **free cooling
   in the low nibble** (0–3). Written as `0x1F` (summer, keep free cooling),
   `0x00` (winter, free cooling off) and `0x70 + level` (keep season).
-- Byte 5: satellite rotation (1 same direction, 2 opposite).
+- Byte 5: satellite rotation (1 same direction, 2 opposite). Writable per the
+  vendor cloud API; written as `0x7F` (keep) by every other command.
 - Bytes 6–11: the main unit's address, on a satellite. The integration writes
   them back as last read (the ESPHome package wrote zeros).
 

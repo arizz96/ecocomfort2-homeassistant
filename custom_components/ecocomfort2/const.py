@@ -112,6 +112,15 @@ VALUE_TO_FREE_COOLING = {value: name for name, value in FREE_COOLING_TO_VALUE.it
 # Byte 4 prefix that tells the device "free cooling write, preserve season".
 FREE_COOLING_WRITE_PREFIX = 0x70
 
+# Byte 5: a satellite's rotation relative to its main unit (1 "concordant", 2
+# "discordant" in the vendor cloud API; "Fan Direction Mode" in Home Assistant's
+# own Intelliclima integration). Only meaningful on a satellite.
+ROTATION_SAME = "Same"
+ROTATION_OPPOSITE = "Opposite"
+ROTATION_OPTIONS = [ROTATION_SAME, ROTATION_OPPOSITE]
+ROTATION_TO_VALUE = {ROTATION_SAME: 1, ROTATION_OPPOSITE: 2}
+VALUE_TO_ROTATION = {value: name for name, value in ROTATION_TO_VALUE.items()}
+
 # The "advanced" flag is encoded as +128 on the humidity / VOC threshold byte.
 THRESHOLD_ADVANCED_FLAG = 128
 
