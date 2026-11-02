@@ -112,6 +112,15 @@ VALUE_TO_FREE_COOLING = {value: name for name, value in FREE_COOLING_TO_VALUE.it
 # Byte 4 prefix that tells the device "free cooling write, preserve season".
 FREE_COOLING_WRITE_PREFIX = 0x70
 
+# Byte 5: a satellite's rotation relative to its main unit (1 "concordant", 2
+# "discordant" in the vendor cloud API; "Fan Direction Mode" in Home Assistant's
+# own Intelliclima integration). Only meaningful on a satellite.
+ROTATION_SAME = "Same"
+ROTATION_OPPOSITE = "Opposite"
+ROTATION_OPTIONS = [ROTATION_SAME, ROTATION_OPPOSITE]
+ROTATION_TO_VALUE = {ROTATION_SAME: 1, ROTATION_OPPOSITE: 2}
+VALUE_TO_ROTATION = {value: name for name, value in ROTATION_TO_VALUE.items()}
+
 # The "advanced" flag is encoded as +128 on the humidity / VOC threshold byte.
 THRESHOLD_ADVANCED_FLAG = 128
 
@@ -125,9 +134,10 @@ VALUE_TO_ROLE = {0: "standalone", 1: "main", 2: "satellite"}
 ROLE_OPTIONS = list(VALUE_TO_ROLE.values())
 
 # C_STATE byte 2: the airflow direction the unit is running right now (it
-# alternates in In/Out mode). Assumed to follow the device's own direction
-# encoding used by the mode byte (1 = in, 2 = out); no source documents it.
-VALUE_TO_DIRECTION = {1: "intake", 2: "exhaust"}
+# alternates in In/Out mode). Not the encoding of the mode byte: a main unit
+# commanded to In (running mode 1) and its same-direction satellite both read 2,
+# while a unit mid-cycle in In/Out read 1. Confirmed against real airflow.
+VALUE_TO_DIRECTION = {1: "exhaust", 2: "intake"}
 # Shown while the unit is off, when there's no airflow to report.
 DIRECTION_OFF = "off"
 DIRECTION_OPTIONS = [DIRECTION_OFF, *VALUE_TO_DIRECTION.values()]

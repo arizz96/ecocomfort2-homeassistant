@@ -54,6 +54,13 @@ each part:
     "keep" applies there is undocumented), so they need a prior read.
   - **Device info bytes 2–5** are the serial number, the suffix of the GAP name
     `ECMF2-xxxxxxxx`.
+  - **Sensor readings byte 2** (direction): 1 = exhaust, 2 = intake. It was
+    first assumed the other way round. Confirmed by the maintainer checking the
+    airflow: a main unit running In and its same-direction satellite both read
+    2 (`01 02 02 06 1e 15 83 00 40`, `01 02 02 06 5f 17 49 00 92`), both
+    running Out read 1 (`02 02 01 …`), and a unit mid-cycle in In/Out read 1. A
+    satellite set to "opposite" rotation (configuration byte 5 = 2) reads the
+    other value than its main unit; "same" (byte 5 = 1) reads the same.
 - **From pyintelliclima** (Intelliclima cloud API, same device family): the
   speed-flag decoding (`0x10` profiled/auto, `0x20` advanced step, `0x40`
   boost, `0x80` Sleep), its override order, and the "no reading" placeholders.
@@ -64,9 +71,6 @@ each part:
   - The brightness thresholds read 0.1/0.125/0.150 "lux"; that's a vendor scale
     name, not a physical unit.
 - **Unverified:**
-  - Direction byte 1 = intake, 2 = exhaust is an assumption. A satellite set
-    to "opposite" rotation read the other value at the same moment, which
-    supports it being a direction byte.
   - The meaning of the high nibble of sensor-readings byte 0 is unknown.
 - **VOC** is the device's own scale, not a concentration: about 220 is
   normal. Unit `UnitOfRatio.PARTS_PER_MILLION` (the manufacturer's label) with

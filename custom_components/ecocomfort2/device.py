@@ -50,6 +50,7 @@ from .const import (
     PRESET_OUT,
     PRESET_SENSOR,
     PRESET_TO_MODE,
+    ROTATION_TO_VALUE,
     SEASON_SUMMER,
     SEASON_WINTER,
     SEASON_WRITE_SUMMER,
@@ -63,6 +64,7 @@ from .const import (
     VALUE_TO_DIRECTION,
     VALUE_TO_FREE_COOLING,
     VALUE_TO_ROLE,
+    VALUE_TO_ROTATION,
     VALUE_TO_SPEED_LEVEL,
 )
 
@@ -183,6 +185,7 @@ class EcoComfort2State:
     voc_advanced: bool | None = None
     season: str | None = None
     free_cooling: str | None = None
+    rotation: str | None = None  # satellites only, one of ROTATION_OPTIONS
 
     # C_ADVANCED
     temp_offset: float | None = None
@@ -545,7 +548,9 @@ class EcoComfort2Device:
             _LOGGER.info(
                 "Reading %s from %s works again", CHAR_NAMES[char], self.label
             )
-        return bytes(data)
+        raw = bytes(data)
+        _LOGGER.debug("Read %s from %s: %s", CHAR_NAMES[char], self.label, raw.hex(" "))
+        return raw
 
     def _note_read_failure(self, char: str, err: Exception) -> None:
         known = char in self._failing
@@ -733,7 +738,16 @@ class EcoComfort2Device:
             "free cooling", byte4 & 0x0F, VALUE_TO_FREE_COOLING
         )
 
+        # Byte 5 is the rotation relative to the main unit; it only means
+        # something on a satellite, so other roles don't decode (or log) it.
+        self.state.rotation = (
+            self._decode("rotation", data[5], VALUE_TO_ROTATION)
+            if len(data) > 5 and self.state.role == "satellite"
+            else None
+        )
+
     def _clear_config(self) -> None:
+        self.state.rotation = None
         self.state.role = None
         self.state.humidity_threshold = None
         self.state.humidity_advanced = None
@@ -897,10 +911,12 @@ class EcoComfort2Device:
         self,
         thresholds: tuple[int, int, int] = (CONFIG_PRESERVE,) * 3,
         byte4: int = CONFIG_PRESERVE,
+        rotation: int = CONFIG_PRESERVE,
     ) -> bytes:
         """Build a C_CONFIGURATION write that changes only the given bytes.
 
-        Role (byte 0) and rotation (byte 5) are kept with 0x7F. Bytes 6-11
+        Role (byte 0) is kept with 0x7F, and so is rotation (byte 5) unless
+        given. Bytes 6-11
         (a satellite's main-unit address) are sent back as last read: the
         original package wrote zeros there, and nothing documents whether
         0x7F means "keep" in those bytes too.
@@ -910,9 +926,22 @@ class EcoComfort2Device:
                 _NOT_READ_YET.format(what="configuration settings")
             )
         return (
-            bytes([CONFIG_PRESERVE, *thresholds, byte4, CONFIG_PRESERVE])
+            bytes([CONFIG_PRESERVE, *thresholds, byte4, rotation])
             + self._config_address
         )
+
+    async def async_write_rotation(self, rotation: str) -> None:
+        """Write a satellite's rotation relative to its main unit."""
+        if self.state.role != "satellite":
+            raise HomeAssistantError(
+                "Rotation can only be set on a satellite unit; "
+                f"{self.label} isn't one"
+            )
+        async with self._command():
+            await self._write_locked(
+                CHAR_CONFIG,
+                self._config_command(rotation=ROTATION_TO_VALUE[rotation]),
+            )
 
     async def async_write_season(self, season: str) -> None:
         """Write the season, preserving the rest of the configuration."""

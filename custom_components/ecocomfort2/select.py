@@ -10,7 +10,12 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import FREE_COOLING_OPTIONS, SEASON_OPTIONS, THRESHOLD_OPTIONS
+from .const import (
+    FREE_COOLING_OPTIONS,
+    ROTATION_OPTIONS,
+    SEASON_OPTIONS,
+    THRESHOLD_OPTIONS,
+)
 from .coordinator import EcoComfort2ConfigEntry
 from .device import EcoComfort2Device, EcoComfort2State
 from .entity import EcoComfort2Entity
@@ -48,6 +53,15 @@ SELECTS: tuple[EcoComfort2SelectDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         value_fn=lambda state: state.free_cooling,
         select_fn=lambda device, option: device.async_write_free_cooling(option),
+    ),
+    EcoComfort2SelectDescription(
+        key="rotation",
+        name="Satellite Rotation",
+        icon="mdi:rotate-3d-variant",
+        options=ROTATION_OPTIONS,
+        entity_category=EntityCategory.CONFIG,
+        value_fn=lambda state: state.rotation,
+        select_fn=lambda device, option: device.async_write_rotation(option),
     ),
     *(
         EcoComfort2SelectDescription(
@@ -101,6 +115,13 @@ class EcoComfort2Select(EcoComfort2Entity, SelectEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.address}_{description.key}"
+
+    @property
+    def available(self) -> bool:
+        """Rotation only exists on a satellite; hide it elsewhere."""
+        if self.entity_description.key == "rotation" and self.data.role != "satellite":
+            return False
+        return super().available
 
     @property
     def current_option(self) -> str | None:
