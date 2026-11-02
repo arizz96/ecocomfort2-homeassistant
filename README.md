@@ -335,8 +335,8 @@ units) sets whether the satellite runs in the **Same** or **Opposite**
 direction as its main unit (the Intelliclima app calls it
 concordant/discordant, Home Assistant's own integration "Fan Direction Mode").
 With **Opposite**, a main unit set to In makes the satellite blow Out; choose
-**Same** to have both units take air in. Writing this setting over Bluetooth is
-untested on real units: the values come from the vendor cloud API.
+**Same** to have both units take air in. Writing this setting over Bluetooth was confirmed on real units (the Intelliclima app shows
+the change).
 
 ## Blueprints
 
@@ -463,8 +463,8 @@ manual, and GATT dumps of real units.
 - Byte 4: **season in the high nibble** (0 winter, 1 summer) and **free cooling
   in the low nibble** (0–3). Written as `0x1F` (summer, keep free cooling),
   `0x00` (winter, free cooling off) and `0x70 + level` (keep season).
-- Byte 5: satellite rotation (1 same direction, 2 opposite). Writable per the
-  vendor cloud API; written as `0x7F` (keep) by every other command.
+- Byte 5: satellite rotation (1 same direction, 2 opposite). Writable over
+  Bluetooth (confirmed on a satellite); written as `0x7F` (keep) by every other command.
 - Bytes 6–11: the main unit's address, on a satellite. The integration writes
   them back as last read (the ESPHome package wrote zeros).
 
@@ -483,10 +483,6 @@ The units also expose characteristics this integration doesn't use:
 
 ## Known limitations
 
-- **Direction labels are inferred.** Exhaust = 1 and Intake = 2 isn't
-  documented anywhere. It comes from a main unit and a same-direction
-  satellite both reading 2 while running In and 1 while running Out, and from
-  a pair set to opposite directions reading different values.
 - **The weekly program and Sleep mode** can't be edited or selected from Home
   Assistant; use the Intelliclima app. Setting the fan to 25 % runs at Sleep
   speed.
