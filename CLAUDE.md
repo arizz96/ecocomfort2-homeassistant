@@ -177,8 +177,13 @@ reason.
   `async_setup_entry` renames the registry entries of the former
   `temperature`/`humidity`/`voc`, `indoor_*` and `outdoor_*` sensors (unique ID
   and entity ID), keeping history. Each set updates only in its phase and holds
-  its last value; the first poll after a direction change is skipped. Held
-  values are cleared on a failed read and when the unit becomes unreachable.
+  its last value; held values are cleared on a failed read and when the unit
+  becomes unreachable. In In/Out mode the direction flips about every 30 s
+  (maintainer's Direction history), as often as the poll interval, so a fixed
+  interval sampled the same phase every time (each unit saw only exhaust or
+  only intake), and a "skip the first poll after a change" rule dropped most
+  samples. Hence `POLL_JITTER`: the coordinator varies each interval by ±10 s.
+  Don't reintroduce a fixed interval or the skip rule without checking this.
 - **Coordinator updates must not reset the timer.** Never use
   `async_set_updated_data` for out-of-band updates; it resets the poll timer.
   Use `async_update_listeners`.
