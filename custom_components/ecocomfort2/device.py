@@ -167,9 +167,15 @@ class EcoComfort2State:
     speed_level: str | None = None  # one of SPEED_LEVEL_OPTIONS
     running_speed: int | None = None  # 1-4 (boost as 4), for the fan
     direction: str | None = None  # key of VALUE_TO_DIRECTION
-    temperature: float | None = None
-    humidity: float | None = None
-    voc: float | None = None
+    # The readings sample the air passing the sensor: indoor air while the unit
+    # exhausts, outdoor air while it takes air in. Each set is only updated in
+    # its own phase and holds its last value in between.
+    temperature: float | None = None  # indoor
+    humidity: float | None = None  # indoor
+    voc: float | None = None  # indoor
+    outdoor_temperature: float | None = None
+    outdoor_humidity: float | None = None
+    outdoor_voc: float | None = None
 
     # C_SETTING_OPERATION: the last command (setpoint)
     is_on: bool | None = None
@@ -243,6 +249,7 @@ class EcoComfort2Device:
         # learned from the advertisement or the GAP Device Name characteristic.
         self.name = name
         self.state = EcoComfort2State()
+        self._last_direction: str | None = None
 
         self._lock = asyncio.Lock()
         self._client: BleakClientWithServiceCache | None = None
@@ -455,6 +462,9 @@ class EcoComfort2Device:
                         reason,
                     )
                     self.state.connected = False
+                    # Held readings would be old when the unit comes back.
+                    self._last_direction = None
+                    self._clear_readings()
             else:
                 self._set_reachable()
             finally:
@@ -588,30 +598,51 @@ class EcoComfort2Device:
         self._parse_running(data[0], data[1])
         # A stopped unit has no airflow; its direction byte is then
         # meaningless, so don't decode (and warn about) it.
-        self.state.direction = (
+        direction = (
             DIRECTION_OFF
             if data[0] & 0x0F == MODE_OFF
             else self._decode("direction", data[2], VALUE_TO_DIRECTION)
         )
+        self.state.direction = direction
+        previous, self._last_direction = self._last_direction, direction
+        # The readings sample the air in the current direction: exhaust =
+        # indoor, intake = outdoor. Skip the first poll after a direction
+        # change (the sensor may still show the previous airflow), and when
+        # stopped or unknown; the other set keeps its last value.
+        if direction not in ("exhaust", "intake") or direction != previous:
+            return
         # The device reports fixed "no reading" values (documented for the
         # vendor cloud API as 327.67 / 143 / 65535); show those as unknown.
         temp_raw = int.from_bytes(data[3:5], "big", signed=True)
-        self.state.temperature = (
-            None if temp_raw == TEMPERATURE_NO_READING else temp_raw / 100.0
-        )
+        temperature = None if temp_raw == TEMPERATURE_NO_READING else temp_raw / 100.0
         humidity = int.from_bytes(data[5:7], "big", signed=False) / 100.0
-        self.state.humidity = humidity if humidity <= 100 else None
+        humidity = humidity if humidity <= 100 else None
         voc_raw = int.from_bytes(data[7:9], "big", signed=False)
-        self.state.voc = None if voc_raw == VOC_NO_READING else float(voc_raw)
+        voc = None if voc_raw == VOC_NO_READING else float(voc_raw)
+        if direction == "exhaust":
+            self.state.temperature = temperature
+            self.state.humidity = humidity
+            self.state.voc = voc
+        else:
+            self.state.outdoor_temperature = temperature
+            self.state.outdoor_humidity = humidity
+            self.state.outdoor_voc = voc
 
     def _clear_state(self) -> None:
         self.state.operating_mode = None
         self.state.speed_level = None
         self.state.running_speed = None
         self.state.direction = None
+        self._last_direction = None
+        self._clear_readings()
+
+    def _clear_readings(self) -> None:
         self.state.temperature = None
         self.state.humidity = None
         self.state.voc = None
+        self.state.outdoor_temperature = None
+        self.state.outdoor_humidity = None
+        self.state.outdoor_voc = None
 
     def _parse_running(self, mode_state: int, speed_state: int) -> None:
         """Decode the running mode/speed in C_STATE bytes 0-1.

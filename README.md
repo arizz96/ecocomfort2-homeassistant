@@ -193,9 +193,17 @@ discovered, otherwise `ecocomfort_vmc_aa_bb_cc_dd_ee_ff` (from its address).
 
 | Entity | What it shows |
 |---|---|
-| `sensor.<device>_temperature` | Indoor temperature (°C) |
-| `sensor.<device>_humidity` | Indoor relative humidity (%) |
-| `sensor.<device>_voc` | Air quality (VOC), see [below](#about-the-voc-reading) |
+| `sensor.<device>_temperature` | Indoor temperature (°C), sampled while the unit exhausts |
+| `sensor.<device>_humidity` | Indoor relative humidity (%), sampled while the unit exhausts |
+| `sensor.<device>_voc` | Indoor air quality (VOC), sampled while the unit exhausts; see [below](#about-the-voc-reading) |
+| `sensor.<device>_outdoor_temperature`, `_outdoor_humidity`, `_outdoor_voc` | The same readings sampled while the unit takes air in (outdoor air) |
+
+The unit has one set of sensors, so it measures whichever air passes it. The
+indoor entities update only while the unit exhausts and the outdoor ones only
+while it takes air in; each set keeps its last value in between. The first poll
+after a direction change is ignored (the sensor may still show the previous
+airflow), and nothing updates while the unit is off or unreachable. A unit that
+only runs In or only Out therefore fills just one of the two sets.
 | `sensor.<device>_nominal_power` | Catalogue power (W) for the speed the unit is running at, from the [speed table](#speeds) (0 W when off, Boost counted as Speed 3). Not a measurement. Disabled by default |
 | `sensor.<device>_nominal_energy` | Running total (kWh) of the nominal power over time, for the Energy dashboard. Counts only while the unit is reachable; an estimate, not a measurement. Disabled by default |
 

@@ -45,8 +45,10 @@ class EcoComfort2SensorDescription(SensorEntityDescription):
 
 SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
     EcoComfort2SensorDescription(
+        # Indoor air: sampled while the unit exhausts. Keys (unique IDs) are
+        # unchanged from when these were the only readings.
         key="temperature",
-        name="Temperature",
+        name="Indoor Temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -55,7 +57,7 @@ SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
     ),
     EcoComfort2SensorDescription(
         key="humidity",
-        name="Humidity",
+        name="Indoor Humidity",
         device_class=SensorDeviceClass.HUMIDITY,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
@@ -64,7 +66,7 @@ SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
     ),
     EcoComfort2SensorDescription(
         key="voc",
-        name="VOC",
+        name="Indoor VOC",
         # The device's own air-quality scale, labelled "ppm" by the manufacturer
         # (manual: VOC thresholds 250/300/350 ppm; the app graphs it as
         # "quality"). Not a physical concentration, so no VOC device class:
@@ -73,6 +75,33 @@ SENSORS: tuple[EcoComfort2SensorDescription, ...] = (
         native_unit_of_measurement=UnitOfRatio.PARTS_PER_MILLION,
         icon="mdi:air-filter",
         value_fn=lambda state: state.voc,
+    ),
+    # Outdoor air: sampled while the unit takes air in.
+    EcoComfort2SensorDescription(
+        key="outdoor_temperature",
+        name="Outdoor Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        suggested_display_precision=1,
+        value_fn=lambda state: state.outdoor_temperature,
+    ),
+    EcoComfort2SensorDescription(
+        key="outdoor_humidity",
+        name="Outdoor Humidity",
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=1,
+        value_fn=lambda state: state.outdoor_humidity,
+    ),
+    EcoComfort2SensorDescription(
+        key="outdoor_voc",
+        name="Outdoor VOC",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfRatio.PARTS_PER_MILLION,
+        icon="mdi:air-filter",
+        value_fn=lambda state: state.outdoor_voc,
     ),
     EcoComfort2SensorDescription(
         key="direction",
