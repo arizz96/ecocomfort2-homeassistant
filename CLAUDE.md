@@ -168,13 +168,17 @@ reason.
   via `async_get_device_by_identifier` + `async_update_device`
   (`async_get_device` is deprecated; the new API needs HA 2026.8). Entity
   `DeviceInfo` must not set them, because passing unknown values clears them.
-- **Indoor/outdoor readings.** The unit has one temperature/humidity/VOC
-  sensor, so the values describe the air passing it: exhaust = indoor
-  (`indoor_*`), intake = outdoor (`outdoor_*`). `async_setup_entry` renames
-  the registry entries of the former `temperature`/`humidity`/`voc` sensors to
-  `indoor_*` (unique ID and entity ID), keeping history. Each set updates only in its phase and holds its last value;
-  the first poll after a direction change is skipped. Held values are cleared
-  on a failed read and when the unit becomes unreachable.
+- **Exhaust/intake readings.** The unit has one temperature/humidity/VOC
+  sensor, so the values describe the air passing it, on the room side of the
+  heat exchanger: room air while exhausting (`exhaust_*`), post-exchanger
+  supply air while taking air in (`intake_*`). The intake set is **not**
+  outdoor air (maintainer's check: intake 17 °C, room 18 °C, outside 9 °C), so
+  don't name or document it as such; an earlier version did.
+  `async_setup_entry` renames the registry entries of the former
+  `temperature`/`humidity`/`voc`, `indoor_*` and `outdoor_*` sensors (unique ID
+  and entity ID), keeping history. Each set updates only in its phase and holds
+  its last value; the first poll after a direction change is skipped. Held
+  values are cleared on a failed read and when the unit becomes unreachable.
 - **Coordinator updates must not reset the timer.** Never use
   `async_set_updated_data` for out-of-band updates; it resets the poll timer.
   Use `async_update_listeners`.

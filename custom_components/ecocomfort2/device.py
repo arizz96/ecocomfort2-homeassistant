@@ -167,15 +167,16 @@ class EcoComfort2State:
     speed_level: str | None = None  # one of SPEED_LEVEL_OPTIONS
     running_speed: int | None = None  # 1-4 (boost as 4), for the fan
     direction: str | None = None  # key of VALUE_TO_DIRECTION
-    # The readings sample the air passing the sensor: indoor air while the unit
-    # exhausts, outdoor air while it takes air in. Each set is only updated in
-    # its own phase and holds its last value in between.
-    indoor_temperature: float | None = None
-    indoor_humidity: float | None = None
-    indoor_voc: float | None = None
-    outdoor_temperature: float | None = None
-    outdoor_humidity: float | None = None
-    outdoor_voc: float | None = None
+    # The readings sample the air passing the sensor, which sits on the room
+    # side of the heat exchanger: room air while the unit exhausts, air that
+    # has already passed the exchanger (not outdoor air) while it takes air in.
+    # Each set is only updated in its own phase and holds its last value.
+    exhaust_temperature: float | None = None
+    exhaust_humidity: float | None = None
+    exhaust_voc: float | None = None
+    intake_temperature: float | None = None
+    intake_humidity: float | None = None
+    intake_voc: float | None = None
 
     # C_SETTING_OPERATION: the last command (setpoint)
     is_on: bool | None = None
@@ -605,8 +606,8 @@ class EcoComfort2Device:
         )
         self.state.direction = direction
         previous, self._last_direction = self._last_direction, direction
-        # The readings sample the air in the current direction: exhaust =
-        # indoor, intake = outdoor. Skip the first poll after a direction
+        # The readings sample the air in the current direction, so they go to
+        # the exhaust or intake set. Skip the first poll after a direction
         # change (the sensor may still show the previous airflow), and when
         # stopped or unknown; the other set keeps its last value.
         if direction not in ("exhaust", "intake") or direction != previous:
@@ -620,13 +621,13 @@ class EcoComfort2Device:
         voc_raw = int.from_bytes(data[7:9], "big", signed=False)
         voc = None if voc_raw == VOC_NO_READING else float(voc_raw)
         if direction == "exhaust":
-            self.state.indoor_temperature = temperature
-            self.state.indoor_humidity = humidity
-            self.state.indoor_voc = voc
+            self.state.exhaust_temperature = temperature
+            self.state.exhaust_humidity = humidity
+            self.state.exhaust_voc = voc
         else:
-            self.state.outdoor_temperature = temperature
-            self.state.outdoor_humidity = humidity
-            self.state.outdoor_voc = voc
+            self.state.intake_temperature = temperature
+            self.state.intake_humidity = humidity
+            self.state.intake_voc = voc
 
     def _clear_state(self) -> None:
         self.state.operating_mode = None
@@ -637,12 +638,12 @@ class EcoComfort2Device:
         self._clear_readings()
 
     def _clear_readings(self) -> None:
-        self.state.indoor_temperature = None
-        self.state.indoor_humidity = None
-        self.state.indoor_voc = None
-        self.state.outdoor_temperature = None
-        self.state.outdoor_humidity = None
-        self.state.outdoor_voc = None
+        self.state.exhaust_temperature = None
+        self.state.exhaust_humidity = None
+        self.state.exhaust_voc = None
+        self.state.intake_temperature = None
+        self.state.intake_humidity = None
+        self.state.intake_voc = None
 
     def _parse_running(self, mode_state: int, speed_state: int) -> None:
         """Decode the running mode/speed in C_STATE bytes 0-1.

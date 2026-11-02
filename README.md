@@ -193,23 +193,29 @@ discovered, otherwise `ecocomfort_vmc_aa_bb_cc_dd_ee_ff` (from its address).
 
 | Entity | What it shows |
 |---|---|
-| `sensor.<device>_indoor_temperature` | Indoor temperature (°C), sampled while the unit exhausts |
-| `sensor.<device>_indoor_humidity` | Indoor relative humidity (%), sampled while the unit exhausts |
-| `sensor.<device>_indoor_voc` | Indoor air quality (VOC), sampled while the unit exhausts; see [below](#about-the-voc-reading) |
-| `sensor.<device>_outdoor_temperature`, `_outdoor_humidity`, `_outdoor_voc` | The same readings sampled while the unit takes air in (outdoor air) |
-
-The unit has one set of sensors, so it measures whichever air passes it. The
-indoor entities update only while the unit exhausts and the outdoor ones only
-while it takes air in; each set keeps its last value in between. The first poll
-after a direction change is ignored (the sensor may still show the previous
-airflow), and nothing updates while the unit is off or unreachable. A unit that
-only runs In or only Out therefore fills just one of the two sets.
-
-Updating from an earlier version renames the old `_temperature`, `_humidity`
-and `_voc` entities to `_indoor_…` in place (history is kept). Automations and
-dashboards that reference the old entity IDs need updating.
+| `sensor.<device>_exhaust_temperature` | Temperature (°C) while the unit exhausts: the room air |
+| `sensor.<device>_exhaust_humidity` | Relative humidity (%) while the unit exhausts |
+| `sensor.<device>_exhaust_voc` | Air quality (VOC) while the unit exhausts; see [below](#about-the-voc-reading) |
+| `sensor.<device>_intake_temperature`, `_intake_humidity`, `_intake_voc` | The same readings while the unit takes air in |
 | `sensor.<device>_nominal_power` | Catalogue power (W) for the speed the unit is running at, from the [speed table](#speeds) (0 W when off, Boost counted as Speed 3). Not a measurement. Disabled by default |
 | `sensor.<device>_nominal_energy` | Running total (kWh) of the nominal power over time, for the Energy dashboard. Counts only while the unit is reachable; an estimate, not a measurement. Disabled by default |
+
+The unit has one set of sensors, so it measures whichever air passes it. It sits
+on the room side of the heat exchanger: while the unit exhausts it sees room
+air, while it takes air in it sees air that has already passed the exchanger.
+That is **not** outdoor air (in one check, 17 °C intake against 9 °C outside and
+18 °C in the room), so use a separate outdoor sensor for the outside
+temperature. The exhaust entities update only while the unit exhausts and the
+intake ones only while it takes air in; each set keeps its last value in
+between. The first poll after a direction change is ignored (the sensor may
+still show the previous airflow), and nothing updates while the unit is off or
+unreachable. A unit that only runs In or only Out fills just one of the two
+sets.
+
+Updating from an earlier version renames the old `_temperature`, `_humidity`
+and `_voc` entities (and the interim `_indoor_…` / `_outdoor_…` ones) to
+`_exhaust_…` / `_intake_…` in place, keeping their history. Automations and
+dashboards that reference the old entity IDs need updating.
 
 ### Diagnostics
 
@@ -376,7 +382,7 @@ entity types. Entity IDs differ: they're derived from the device's name.
 | `button.<unit>_pair` | `button.<device>_pair` |
 | `binary_sensor.<unit>_connected` | `binary_sensor.<device>_connected` (reachability, see [How it works](#how-it-works)) |
 | `binary_sensor.<unit>_boost_active` | Removed: use `sensor.<device>_actual_speed` = **Boost** |
-| `sensor.<unit>_temperature`, `_humidity`, `_voc` | `sensor.<device>_indoor_temperature`, `_indoor_humidity`, `_indoor_voc` (plus `_outdoor_…`, see [Readings](#readings)); VOC on the device's scale, see [About the VOC reading](#about-the-voc-reading) |
+| `sensor.<unit>_temperature`, `_humidity`, `_voc` | `sensor.<device>_exhaust_temperature`, `_exhaust_humidity`, `_exhaust_voc` (plus `_intake_…`, see [Readings](#readings)); VOC on the device's scale, see [About the VOC reading](#about-the-voc-reading) |
 | `sensor.<unit>_direction`, `_actual_mode`, `_actual_speed`, `_role` (numbers) | Same names, now with readable states |
 | Firmware Version text sensor | Removed: on the device page, with the serial number |
 | `sensor.<unit>_temp_offset`, `_humidity_offset` | Removed: the offset numbers show the values stored on the unit |
