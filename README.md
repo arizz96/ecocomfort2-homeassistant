@@ -484,9 +484,9 @@ The units also expose characteristics this integration doesn't use:
 ## Known limitations
 
 - **Direction labels are inferred.** Exhaust = 1 and Intake = 2 isn't
-  documented anywhere. It comes from a main unit set to In and a
-  same-direction satellite both reading 2, and from a main/satellite pair set
-  to opposite directions reading different values.
+  documented anywhere. It comes from a main unit and a same-direction
+  satellite both reading 2 while running In and 1 while running Out, and from
+  a pair set to opposite directions reading different values.
 - **The weekly program and Sleep mode** can't be edited or selected from Home
   Assistant; use the Intelliclima app. Setting the fan to 25 % runs at Sleep
   speed.
