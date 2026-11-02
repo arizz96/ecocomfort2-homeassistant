@@ -167,9 +167,16 @@ class EcoComfort2State:
     speed_level: str | None = None  # one of SPEED_LEVEL_OPTIONS
     running_speed: int | None = None  # 1-4 (boost as 4), for the fan
     direction: str | None = None  # key of VALUE_TO_DIRECTION
-    temperature: float | None = None
-    humidity: float | None = None
-    voc: float | None = None
+    # The readings sample the air passing the sensor, which sits on the room
+    # side of the heat exchanger: room air while the unit exhausts, air that
+    # has already passed the exchanger (not outdoor air) while it takes air in.
+    # Each set is only updated in its own phase and holds its last value.
+    exhaust_temperature: float | None = None
+    exhaust_humidity: float | None = None
+    exhaust_voc: float | None = None
+    intake_temperature: float | None = None
+    intake_humidity: float | None = None
+    intake_voc: float | None = None
 
     # C_SETTING_OPERATION: the last command (setpoint)
     is_on: bool | None = None
@@ -455,6 +462,8 @@ class EcoComfort2Device:
                         reason,
                     )
                     self.state.connected = False
+                    # Held readings would be old when the unit comes back.
+                    self._clear_readings()
             else:
                 self._set_reachable()
             finally:
@@ -588,30 +597,49 @@ class EcoComfort2Device:
         self._parse_running(data[0], data[1])
         # A stopped unit has no airflow; its direction byte is then
         # meaningless, so don't decode (and warn about) it.
-        self.state.direction = (
+        direction = (
             DIRECTION_OFF
             if data[0] & 0x0F == MODE_OFF
             else self._decode("direction", data[2], VALUE_TO_DIRECTION)
         )
+        self.state.direction = direction
+        # The readings sample the air in the current direction, so they go to
+        # the exhaust or intake set; the other set keeps its last value. Not
+        # while stopped or unknown. (Phases last about as long as a poll
+        # interval, so a reading can't be skipped as "just after a change".)
+        if direction not in ("exhaust", "intake"):
+            return
         # The device reports fixed "no reading" values (documented for the
         # vendor cloud API as 327.67 / 143 / 65535); show those as unknown.
         temp_raw = int.from_bytes(data[3:5], "big", signed=True)
-        self.state.temperature = (
-            None if temp_raw == TEMPERATURE_NO_READING else temp_raw / 100.0
-        )
+        temperature = None if temp_raw == TEMPERATURE_NO_READING else temp_raw / 100.0
         humidity = int.from_bytes(data[5:7], "big", signed=False) / 100.0
-        self.state.humidity = humidity if humidity <= 100 else None
+        humidity = humidity if humidity <= 100 else None
         voc_raw = int.from_bytes(data[7:9], "big", signed=False)
-        self.state.voc = None if voc_raw == VOC_NO_READING else float(voc_raw)
+        voc = None if voc_raw == VOC_NO_READING else float(voc_raw)
+        if direction == "exhaust":
+            self.state.exhaust_temperature = temperature
+            self.state.exhaust_humidity = humidity
+            self.state.exhaust_voc = voc
+        else:
+            self.state.intake_temperature = temperature
+            self.state.intake_humidity = humidity
+            self.state.intake_voc = voc
 
     def _clear_state(self) -> None:
         self.state.operating_mode = None
         self.state.speed_level = None
         self.state.running_speed = None
         self.state.direction = None
-        self.state.temperature = None
-        self.state.humidity = None
-        self.state.voc = None
+        self._clear_readings()
+
+    def _clear_readings(self) -> None:
+        self.state.exhaust_temperature = None
+        self.state.exhaust_humidity = None
+        self.state.exhaust_voc = None
+        self.state.intake_temperature = None
+        self.state.intake_humidity = None
+        self.state.intake_voc = None
 
     def _parse_running(self, mode_state: int, speed_state: int) -> None:
         """Decode the running mode/speed in C_STATE bytes 0-1.

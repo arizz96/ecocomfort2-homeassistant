@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
@@ -12,7 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import CLOCK_SYNC_INTERVAL, DOMAIN, UPDATE_INTERVAL
+from .const import CLOCK_SYNC_INTERVAL, DOMAIN, POLL_JITTER, UPDATE_INTERVAL
 from .device import EcoComfort2Device, EcoComfort2State
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,6 +77,12 @@ class EcoComfort2Coordinator(DataUpdateCoordinator[EcoComfort2State]):
         last = self.device.last_clock_sync
         sync_clock = last is None or dt_util.utcnow() - last >= CLOCK_SYNC_INTERVAL
         state = await self.device.async_poll(sync_clock=sync_clock)
+        # In In/Out mode the airflow reverses about as often as we poll. With a
+        # fixed interval every poll would land at the same point of the cycle
+        # and always see the same direction, so vary the next one.
+        self.update_interval = UPDATE_INTERVAL + timedelta(
+            seconds=random.uniform(-POLL_JITTER, POLL_JITTER)
+        )
         self._sync_device_info(state)
         self._store_name()
         return state
