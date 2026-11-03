@@ -54,12 +54,6 @@ async def async_setup_entry(
         (Platform.SENSOR, "temp_offset"),
         (Platform.SENSOR, "humidity_offset"),
         (Platform.SENSOR, "firmware"),
-        (Platform.SENSOR, "exhaust_temperature"),
-        (Platform.SENSOR, "exhaust_humidity"),
-        (Platform.SENSOR, "exhaust_voc"),
-        (Platform.SENSOR, "intake_temperature"),
-        (Platform.SENSOR, "intake_humidity"),
-        (Platform.SENSOR, "intake_voc"),
     ):
         if entity_id := registry.async_get_entity_id(
             platform, DOMAIN, f"{address}_{key}"
