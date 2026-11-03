@@ -43,7 +43,6 @@ async def async_setup_entry(
     # Actual Speed, the offset sensors restated the offset numbers, and the
     # firmware sensor restated the device page.
     registry = er.async_get(hass)
-
     for platform, key in (
         (Platform.NUMBER, "humidity_threshold"),
         (Platform.NUMBER, "luminosity_threshold"),
