@@ -41,8 +41,7 @@ async def async_setup_entry(
     # to be number entities (now selects with the same unique IDs), the Sleep
     # Mode (briefly Night Mode) and Boost Active binary sensors only restated
     # Actual Speed, the offset sensors restated the offset numbers, and the
-    # firmware sensor restated the device page. The exhaust/intake reading
-    # sets are gone again: temperature/humidity/VOC are single indoor readings.
+    # firmware sensor restated the device page.
     registry = er.async_get(hass)
     for platform, key in (
         (Platform.NUMBER, "humidity_threshold"),
