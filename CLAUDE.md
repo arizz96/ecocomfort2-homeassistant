@@ -200,7 +200,7 @@ reason.
 - **Registry cleanup.** `__init__.py` removes registry entries of replaced
   entities (old threshold numbers, `night_active`, `sleep_active`,
   `boost_active`, `temp_offset`, `humidity_offset`, `firmware`,
-  `exhaust_*`, `intake_*`). Add to that list when an entity is removed or changes
+  `intake_*`; the `exhaust_*` sensors are renamed to `temperature`/`humidity`/`voc` in place to keep history). Add to that list when an entity is removed or changes
   platform.
 - **Use Home Assistant's current APIs** (`UnitOfRatio`,
   `AddConfigEntryEntitiesCallback`, `entry.runtime_data`). Before using a

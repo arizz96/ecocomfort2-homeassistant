@@ -26,6 +26,33 @@ PLATFORMS: list[Platform] = [
 ]
 
 
+def _migrate_exhaust_readings(registry: er.EntityRegistry, address: str) -> None:
+    """Turn the exhaust_* sensors back into temperature/humidity/voc.
+
+    Same data (room air), so the entities are renamed in place, entity ID and
+    unique ID, to keep their history. Any leftover entry of the pre-split
+    entity is dropped first: it holds the unique ID and the entity ID.
+    """
+    for key in ("temperature", "humidity", "voc"):
+        old_id = registry.async_get_entity_id(
+            Platform.SENSOR, DOMAIN, f"{address}_exhaust_{key}"
+        )
+        if old_id is None:
+            continue
+        if leftover := registry.async_get_entity_id(
+            Platform.SENSOR, DOMAIN, f"{address}_{key}"
+        ):
+            registry.async_remove(leftover)
+        new_id = None
+        if old_id.endswith(f"_exhaust_{key}"):
+            new_id = f"{old_id.removesuffix(f'_exhaust_{key}')}_{key}"
+            if registry.async_get(new_id) is not None:
+                new_id = None
+        registry.async_update_entity(
+            old_id, new_unique_id=f"{address}_{key}", new_entity_id=new_id or old_id
+        )
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: EcoComfort2ConfigEntry
 ) -> bool:
@@ -41,9 +68,11 @@ async def async_setup_entry(
     # to be number entities (now selects with the same unique IDs), the Sleep
     # Mode (briefly Night Mode) and Boost Active binary sensors only restated
     # Actual Speed, the offset sensors restated the offset numbers, and the
-    # firmware sensor restated the device page. The exhaust/intake reading
-    # sets are gone again: temperature/humidity/VOC are single indoor readings.
+    # firmware sensor restated the device page. The intake reading set is
+    # gone; the exhaust one (room air) is renamed back to temperature/
+    # humidity/VOC below.
     registry = er.async_get(hass)
+    _migrate_exhaust_readings(registry, address)
     for platform, key in (
         (Platform.NUMBER, "humidity_threshold"),
         (Platform.NUMBER, "luminosity_threshold"),
@@ -54,9 +83,6 @@ async def async_setup_entry(
         (Platform.SENSOR, "temp_offset"),
         (Platform.SENSOR, "humidity_offset"),
         (Platform.SENSOR, "firmware"),
-        (Platform.SENSOR, "exhaust_temperature"),
-        (Platform.SENSOR, "exhaust_humidity"),
-        (Platform.SENSOR, "exhaust_voc"),
         (Platform.SENSOR, "intake_temperature"),
         (Platform.SENSOR, "intake_humidity"),
         (Platform.SENSOR, "intake_voc"),
