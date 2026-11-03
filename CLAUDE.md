@@ -168,20 +168,22 @@ reason.
   via `async_get_device_by_identifier` + `async_update_device`
   (`async_get_device` is deprecated; the new API needs HA 2026.8). Entity
   `DeviceInfo` must not set them, because passing unknown values clears them.
-- **Exhaust/intake readings.** The unit has one temperature/humidity/VOC
-  sensor, so the values describe the air passing it, on the room side of the
-  heat exchanger: room air while exhausting (`exhaust_*`), post-exchanger
-  supply air while taking air in (`intake_*`). The intake set is **not**
-  outdoor air (maintainer's check: intake 17 °C, room 18 °C, outside 9 °C), so
-  don't name or document it as such; an earlier version did.
-  Each set updates only in its phase and holds
-  its last value; held values are cleared on a failed read and when the unit
-  becomes unreachable. In In/Out mode the direction flips about every 30 s
-  (maintainer's Direction history), as often as the poll interval, so a fixed
-  interval sampled the same phase every time (each unit saw only exhaust or
-  only intake), and a "skip the first poll after a change" rule dropped most
-  samples. Hence `POLL_JITTER`: the coordinator varies each interval by ±10 s.
-  Don't reintroduce a fixed interval or the skip rule without checking this.
+- **Indoor readings only while exhausting.** The unit has one
+  temperature/humidity/VOC sensor, on the room side of the heat exchanger: room
+  air while exhausting, post-exchanger supply air while taking air in (not
+  outdoor air; maintainer's check: intake 17 °C, room 18 °C, outside 9 °C).
+  A split into exhaust/intake entities was tried and removed (maintainer: not
+  accurate). `temperature`/`humidity`/`voc` update only when direction is
+  exhaust, hold their last value otherwise, and are cleared on a failed read
+  and when the unit becomes unreachable. In In/Out mode the direction flips
+  about every 30 s (maintainer's Direction history), as often as the poll
+  interval, so a fixed interval sampled the same phase every time, and a "skip
+  the first poll after a change" rule dropped most samples. Hence
+  `POLL_JITTER`: the coordinator varies each interval by ±10 s. Don't
+  reintroduce a fixed interval or the skip rule without checking this. Open
+  idea: the sample would be best near the *end* of an exhaust phase, but the
+  phase position isn't in the data; it would need re-reading on the same link
+  until the direction flips (long-held link), not implemented.
 - **Coordinator updates must not reset the timer.** Never use
   `async_set_updated_data` for out-of-band updates; it resets the poll timer.
   Use `async_update_listeners`.
@@ -197,7 +199,8 @@ reason.
     blueprints and automations depend on them.
 - **Registry cleanup.** `__init__.py` removes registry entries of replaced
   entities (old threshold numbers, `night_active`, `sleep_active`,
-  `boost_active`, `temp_offset`, `humidity_offset`, `firmware`). Add to that list when an entity is removed or changes
+  `boost_active`, `temp_offset`, `humidity_offset`, `firmware`,
+  `exhaust_*`, `intake_*`). Add to that list when an entity is removed or changes
   platform.
 - **Use Home Assistant's current APIs** (`UnitOfRatio`,
   `AddConfigEntryEntitiesCallback`, `entry.runtime_data`). Before using a
