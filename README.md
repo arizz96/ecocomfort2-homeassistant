@@ -375,7 +375,7 @@ entity types. Entity IDs differ: they're derived from the device's name.
 | `button.<unit>_pair` | `button.<device>_pair` |
 | `binary_sensor.<unit>_connected` | `binary_sensor.<device>_connected` (reachability, see [How it works](#how-it-works)) |
 | `binary_sensor.<unit>_boost_active` | Removed: use `sensor.<device>_actual_speed` = **Boost** |
-| `sensor.<unit>_temperature`, `_humidity`, `_voc` Same names (the `exhaust_…` sensors of the previous version are renamed back, keeping their history); updated only while the unit exhausts (see [Readings](#readings)). VOC on the device's scale, see [About the VOC reading](#about-the-voc-reading) |
+| `sensor.<unit>_temperature`, `_humidity`, `_voc` Same names; updated only while the unit exhausts (see [Readings](#readings)). VOC on the device's scale, see [About the VOC reading](#about-the-voc-reading) |
 | `sensor.<unit>_direction`, `_actual_mode`, `_actual_speed`, `_role` (numbers) | Same names, now with readable states |
 | Firmware Version text sensor | Removed: on the device page, with the serial number |
 | `sensor.<unit>_temp_offset`, `_humidity_offset` | Removed: the offset numbers show the values stored on the unit |
